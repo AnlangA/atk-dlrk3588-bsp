@@ -15,6 +15,13 @@ out-of-tree 工程的组织方式，直接在 **未修改的主线 Linux 与 U-B
 
 工具链：Rust 1.98、Clang/LLVM 21、bindgen 0.72、AArch64 GCC（U-Boot 与应用链接）。
 
+内核通过 `scripts/bindgen.sh` 调用 bindgen，默认使用 bindgen 自身的日志过滤级别，
+隔离宿主 IDE/应用传入的 `RUST_LOG`。否则 `RUST_LOG=warn` 会输出大量内部解析日志，
+例如把没有 C 类型的宏节点记为 `invalid type`；这类日志数量不等于生成代码的错误数。
+需要检查解析过程时，显式设置 `BINDGEN_RUST_LOG=warn`（或 `bindgen=debug`），在绑定
+重新生成时生效。原始 Clang 诊断、bindgen 错误和退出状态照常传递；绑定生成参数与
+结果不因默认日志隔离而改变。可用 `BSP_BINDGEN_BIN=/path/to/bindgen` 指定可执行文件。
+
 ## 工程结构
 
 ```text
@@ -81,8 +88,10 @@ make package                     # 生成 build/deploy/ 部署包
 
 ```sh
 make -C external/linux O=build/linux ARCH=arm64 LLVM=-21 \
+     BINDGEN=$PWD/scripts/bindgen.sh \
      M=$PWD/linux/drivers MO=$PWD/build/linux-modules modules
 make -C external/linux O=build/linux ARCH=arm64 LLVM=-21 \
+     BINDGEN=$PWD/scripts/bindgen.sh \
      M=$PWD/linux/dts MO=$PWD/build/linux-dts
 ```
 

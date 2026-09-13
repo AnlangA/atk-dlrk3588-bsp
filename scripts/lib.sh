@@ -35,13 +35,15 @@ DEPLOY_OUT=${DEPLOY_OUT:-$BSP_BUILD/deploy}
 JOBS=${JOBS:-$(nproc)}
 # LLVM=1 uses unsuffixed clang/ld.lld; LLVM=-21 selects clang-21 and friends.
 LLVM=${LLVM:-1}
+# Preserve an explicit backend before Kbuild exports BINDGEN as our wrapper.
+BSP_BINDGEN_BIN=${BSP_BINDGEN_BIN:-${BINDGEN:-bindgen}}
 AARCH64_CC=${AARCH64_CC:-aarch64-linux-gnu-gcc}
 # U-Boot is built with GCC; derive the prefix from the cross compiler.
 CROSS_COMPILE=${CROSS_COMPILE:-${AARCH64_CC%gcc}}
 QEMU=${QEMU:-qemu-system-aarch64}
 export BSP_EXTERNAL BSP_BUILD LINUX_SRC UBOOT_SRC RKBIN_DIR LINUX_OUT \
 	LINUX_MODULES_OUT LINUX_DTS_OUT UBOOT_OUT APP_OUT DEPLOY_OUT JOBS LLVM \
-	AARCH64_CC CROSS_COMPILE QEMU
+	AARCH64_CC CROSS_COMPILE QEMU BSP_BINDGEN_BIN
 
 log() { printf '[bsp] %s\n' "$*" >&2; }
 die() { log "error: $*"; exit 1; }
@@ -59,7 +61,8 @@ sha256_check() {
 
 # Kbuild arguments shared by kernel, module and DTB builds.
 linux_make_args() {
-	printf '%s\n' -C "$LINUX_SRC" O="$LINUX_OUT" ARCH=arm64 LLVM="$LLVM"
+	printf '%s\n' -C "$LINUX_SRC" O="$LINUX_OUT" ARCH=arm64 LLVM="$LLVM" \
+		BINDGEN="$BSP_ROOT/scripts/bindgen.sh"
 }
 
 linux_release() {

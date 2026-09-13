@@ -18,8 +18,10 @@ else
 	log "shellcheck not installed; skipped"
 fi
 log "python syntax"
-python3 -m py_compile tests/qemu-test.py
+python3 -m py_compile tests/qemu-test.py tests/test-bindgen.py
 rm -rf tests/__pycache__
+log "bindgen environment isolation"
+python3 tests/test-bindgen.py
 
 cd "$BSP_ROOT/app/rs485-test" || die "missing app/rs485-test"
 export CARGO_TARGET_DIR=$APP_OUT

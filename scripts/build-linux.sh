@@ -7,7 +7,7 @@
 #   CLIPPY=1           run kernel Clippy instead of a plain rustc build
 # shellcheck source=lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
-need_cmd make rustc bindgen
+need_cmd make rustc "$BSP_BINDGEN_BIN"
 
 "$BSP_ROOT/scripts/prepare.sh" linux
 mapfile -t args < <(linux_make_args)
