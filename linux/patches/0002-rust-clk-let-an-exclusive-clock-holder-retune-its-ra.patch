@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Sat, 12 Sep 2026 19:55:24 +0800
+Subject: [PATCH 2/4] rust: clk: let an exclusive clock holder retune its rate
+
+Add `ExclusiveEnabledClk::set_rate`, which gates the clock around a rate
+change while keeping the exclusive claim, and track the enable state so
+Drop stays balanced if re-enabling fails. The UART controller uses this
+to ask the CRU for sixteen times the baud rate when the 24 MHz reference
+cannot meet the divisor tolerance, as 8250_dw does.
+
+[atk-dlrk3588-bsp] Glue from AnlangA/linux commit
+89b0f71d83ecad99079ee1d322ad434a72242b11; the serial abstraction changes
+of that commit live in linux/overlay/rust/kernel/serial.rs.
+---
+ rust/kernel/clk.rs | 52 +++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 45 insertions(+), 7 deletions(-)
+
+diff --git a/rust/kernel/clk.rs b/rust/kernel/clk.rs
+index 257d712276fd6018c300a70fbc43e96deaf06027..254171eec0e15d5cebc8621613bcf65e77acb915 100644
+--- a/rust/kernel/clk.rs
++++ b/rust/kernel/clk.rs
+@@ -83,6 +83,7 @@ mod common_clk {
+         device::Device,
+         error::{from_err_ptr, to_result, Result},
+         prelude::*,
++        sync::atomic::{AtomicFlag, Relaxed},
+     };
+ 
+     use core::{ops::Deref, ptr};
+@@ -261,8 +262,17 @@ fn drop(&mut self) {
+     /// An enabled clock whose rate cannot be changed by other clock consumers.
+     ///
+     /// This owns the clock, one enable reference, and one exclusive-rate claim.
+-    /// All three are released in reverse order when the guard is dropped.
+-    pub struct ExclusiveEnabledClk(Clk);
++    /// All three are released in reverse order when the guard is dropped. The
++    /// holder itself may still move the rate with [`ExclusiveEnabledClk::set_rate`].
++    ///
++    /// # Invariants
++    ///
++    /// The guard holds one exclusive-rate claim, and one enable reference
++    /// while `enabled` is set.
++    pub struct ExclusiveEnabledClk {
++        clk: Clk,
++        enabled: AtomicFlag,
++    }
+ 
+     impl ExclusiveEnabledClk {
+         /// Sets and exclusively claims the rate, then enables the clock.
+@@ -275,20 +285,48 @@ pub fn new(clk: Clk, rate: Hertz) -> Result<Self> {
+                 unsafe { bindings::clk_rate_exclusive_put(clk.as_raw()) };
+                 return Err(err);
+             }
+-            Ok(Self(clk))
++            Ok(Self {
++                clk,
++                enabled: AtomicFlag::new(true),
++            })
+         }
+ 
+-        /// Returns the stable clock frequency held by this guard.
++        /// Returns the clock frequency currently held by this guard.
+         pub fn rate(&self) -> Hertz {
+-            self.0.rate()
++            self.clk.rate()
++        }
++
++        /// Moves the exclusively held rate while the clock is briefly gated.
++        ///
++        /// The exclusive claim stays in place throughout, so no other consumer
++        /// can interleave a rate change; the clock core lets the claim holder
++        /// itself retune the rate. Gating around the change is what UART
++        /// drivers do to keep divider and mux switches glitch-free. On success
++        /// the clock is enabled again; check [`ExclusiveEnabledClk::rate`] for
++        /// the rate the clock core actually chose. May sleep.
++        pub fn set_rate(&self, rate: Hertz) -> Result {
++            if !self.enabled.load(Relaxed) {
++                return Err(EIO);
++            }
++            self.clk.disable_unprepare();
++            let result = self.clk.set_rate(rate);
++            // Failing to re-enable a clock that was running a moment ago means
++            // the clock tree is broken; record it so Drop balances correctly.
++            if let Err(err) = self.clk.prepare_enable() {
++                self.enabled.store(false, Relaxed);
++                return Err(err);
++            }
++            result
+         }
+     }
+ 
+     impl Drop for ExclusiveEnabledClk {
+         fn drop(&mut self) {
+-            self.0.disable_unprepare();
++            if self.enabled.load(Relaxed) {
++                self.clk.disable_unprepare();
++            }
+             // SAFETY: Exactly one successful rate claim belongs to this guard.
+-            unsafe { bindings::clk_rate_exclusive_put(self.0.as_raw()) };
++            unsafe { bindings::clk_rate_exclusive_put(self.clk.as_raw()) };
+         }
+     }
+ 

@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Entry points for the ATK-DLRK3588 out-of-tree BSP. Every target is a thin
+# wrapper around a script in scripts/; run the scripts directly for options.
+
+.PHONY: all fetch prepare linux uboot app check qemu package deploy \
+        flash-uboot export-patches clean distclean help
+
+all: linux uboot app
+
+fetch:
+	scripts/fetch.sh
+
+prepare:
+	scripts/prepare.sh linux
+	scripts/prepare.sh u-boot
+
+linux:
+	scripts/build-linux.sh $(LINUX_TARGETS)
+
+uboot:
+	scripts/build-uboot.sh $(UBOOT_TARGETS)
+
+app:
+	scripts/build-app.sh
+
+check:
+	scripts/check.sh
+
+qemu:
+	scripts/test-qemu.sh
+
+package:
+	scripts/package.sh
+
+deploy:
+	scripts/deploy-board.sh $(DEPLOY_ARGS)
+
+flash-uboot:
+	scripts/flash-uboot.sh $(FLASH_ARGS)
+
+export-patches:
+	scripts/export-patches.sh linux
+	scripts/export-patches.sh u-boot
+
+clean:
+	rm -rf build
+
+distclean: clean
+	rm -rf external
+
+help:
+	@echo 'make fetch          clone Linux $(LINUX_TAG), U-Boot $(UBOOT_TAG) and the rkbin blobs into external/'
+	@echo 'make linux          patch + configure + build kernel, out-of-tree modules and DTB'
+	@echo 'make uboot          patch + build U-Boot with the derived DDR blob and BL31'
+	@echo 'make app            cross-build rs485-test and driver-test-init'
+	@echo 'make check          shell/python syntax, rustfmt, clippy and host tests'
+	@echo 'make qemu           run the module lifecycle tests in QEMU'
+	@echo 'make package        assemble build/deploy/ payload and tarball'
+	@echo 'make deploy         install the payload on the board over SSH (BOARD_HOST)'
+	@echo 'make flash-uboot    FLASH_ARGS="--board|--sd /dev/sdX|--maskrom"'
+	@echo 'make export-patches regenerate */patches from the prepared source trees'
+
+include manifest.env

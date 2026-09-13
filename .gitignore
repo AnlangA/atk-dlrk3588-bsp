@@ -1,0 +1,7 @@
+# Upstream sources and firmware blobs fetched by scripts/fetch.sh.
+/external/
+# Kernel, U-Boot, application and payload outputs.
+/build/
+# Host-specific toolchain paths and board address.
+/local.env
+__pycache__/

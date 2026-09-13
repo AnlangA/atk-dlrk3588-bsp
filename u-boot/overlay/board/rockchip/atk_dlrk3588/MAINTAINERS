@@ -1,0 +1,7 @@
+ATK-DLRK3588
+M:	Alientek <support@openedv.com>
+S:	Maintained
+F:	board/rockchip/atk_dlrk3588
+F:	include/configs/atk_dlrk3588.h
+F:	configs/atk-dlrk3588_defconfig
+F:	arch/arm/dts/rk3588-atk-dlrk3588*

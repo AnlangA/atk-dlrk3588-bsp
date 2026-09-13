@@ -1,0 +1,16 @@
+[Unit]
+Description=Rust UART3 controller and character device
+After=systemd-modules-load.service systemd-udev-trigger.service
+ConditionPathExists=/sys/bus/platform/devices/feb60000.serial
+
+[Service]
+Type=oneshot
+ExecStartPre=/sbin/modprobe rust_chardev
+ExecStart=/usr/local/sbin/bind-uart3.sh --rust
+ExecStop=/usr/local/sbin/bind-uart3.sh --restore
+RemainAfterExit=yes
+TimeoutStartSec=20
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

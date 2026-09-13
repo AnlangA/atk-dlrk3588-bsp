@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Out-of-tree device tree for the Alientek ATK-DLRK3588. Kbuild compiles it
+# with the kernel's own dtc and preprocessor when this directory is passed as
+# an external module directory (make -C <kernel> O=<build> M=$(pwd) MO=<out>).
+dtb-y += rk3588-atk-dlrk3588.dtb

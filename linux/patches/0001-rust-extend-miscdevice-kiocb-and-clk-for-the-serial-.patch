@@ -1,0 +1,264 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Sat, 12 Sep 2026 17:51:48 +0800
+Subject: [PATCH 1/4] rust: extend miscdevice, kiocb and clk for the serial
+ abstractions
+
+Prepare the kernel crate for the out-of-tree Rust UART controller and
+character device shipped by atk-dlrk3588-bsp:
+
+- miscdevice: require an owning module (`MiscDevice::OWNER`) so an open
+  file pins it, add a stream-open option, and add a `poll` callback with
+  POLLIN/POLLOUT/POLLHUP/POLLERR constants;
+- kiocb: expose the current file flags so write_iter can honour O_NONBLOCK
+  changed with fcntl;
+- clk: add `ExclusiveEnabledClk`, an enabled clock with an exclusive rate
+  claim, which the controller holds on its baud clock while bound;
+- bindings: pull in serial_core.h and tty_flip.h, export EPOLL* and UPF_*
+  constants, and include the serial C helper file.
+
+Update the in-tree misc device sample for the new OWNER constant.
+
+[atk-dlrk3588-bsp] Glue from AnlangA/linux commit
+28bc1e9c8cd1b933c95238811abf5b5700ff02b2. The new files of that commit
+(rust/kernel/serial.rs, rust/helpers/serial.c) are provided by
+linux/overlay/, the driver modules by linux/drivers/.
+---
+ rust/bindings/bindings_helper.h  | 10 ++++++
+ rust/helpers/helpers.c           |  1 +
+ rust/kernel/clk.rs               | 34 ++++++++++++++++++++
+ rust/kernel/fs/kiocb.rs          |  7 +++++
+ rust/kernel/lib.rs               |  2 ++
+ rust/kernel/miscdevice.rs        | 54 +++++++++++++++++++++++++++++++-
+ samples/rust/rust_misc_device.rs |  1 +
+ 7 files changed, 108 insertions(+), 1 deletion(-)
+
+diff --git a/rust/bindings/bindings_helper.h b/rust/bindings/bindings_helper.h
+index 1124785e210b30ce9da73e84631d75b4c96bf04f..c66babe21612dddf0e4cf695d529e577bcc086bd 100644
+--- a/rust/bindings/bindings_helper.h
++++ b/rust/bindings/bindings_helper.h
+@@ -85,6 +85,8 @@
+ #include <linux/regulator/consumer.h>
+ #include <linux/sched.h>
+ #include <linux/security.h>
++#include <linux/serial_core.h>
++#include <linux/tty_flip.h>
+ #include <linux/slab.h>
+ #include <linux/sys_soc.h>
+ #include <linux/task_work.h>
+@@ -110,6 +112,14 @@
+ const size_t RUST_CONST_HELPER_ARCH_SLAB_MINALIGN = ARCH_SLAB_MINALIGN;
+ const size_t RUST_CONST_HELPER_ARCH_KMALLOC_MINALIGN = ARCH_KMALLOC_MINALIGN;
+ const size_t RUST_CONST_HELPER_PAGE_SIZE = PAGE_SIZE;
++const __poll_t RUST_CONST_HELPER_EPOLLIN = EPOLLIN;
++const __poll_t RUST_CONST_HELPER_EPOLLRDNORM = EPOLLRDNORM;
++const __poll_t RUST_CONST_HELPER_EPOLLOUT = EPOLLOUT;
++const __poll_t RUST_CONST_HELPER_EPOLLWRNORM = EPOLLWRNORM;
++const __poll_t RUST_CONST_HELPER_EPOLLERR = EPOLLERR;
++const __poll_t RUST_CONST_HELPER_EPOLLHUP = EPOLLHUP;
++const upf_t RUST_CONST_HELPER_UPF_FIXED_PORT = UPF_FIXED_PORT;
++const upf_t RUST_CONST_HELPER_UPF_FIXED_TYPE = UPF_FIXED_TYPE;
+ const gfp_t RUST_CONST_HELPER_GFP_ATOMIC = GFP_ATOMIC;
+ const gfp_t RUST_CONST_HELPER_GFP_KERNEL = GFP_KERNEL;
+ const gfp_t RUST_CONST_HELPER_GFP_KERNEL_ACCOUNT = GFP_KERNEL_ACCOUNT;
+diff --git a/rust/helpers/helpers.c b/rust/helpers/helpers.c
+index 998e31052e660152172791f061070b7b80a7f84e..98ad628a445e07d95740326c783cb040b411f8e1 100644
+--- a/rust/helpers/helpers.c
++++ b/rust/helpers/helpers.c
+@@ -87,6 +87,7 @@
+ #include "regulator.c"
+ #include "scatterlist.c"
+ #include "security.c"
++#include "serial.c"
+ #include "signal.c"
+ #include "slab.c"
+ #include "spinlock.c"
+diff --git a/rust/kernel/clk.rs b/rust/kernel/clk.rs
+index 7abbd0767d8cff9f2561d1783a9a1d774a96d1fc..257d712276fd6018c300a70fbc43e96deaf06027 100644
+--- a/rust/kernel/clk.rs
++++ b/rust/kernel/clk.rs
+@@ -258,6 +258,40 @@ fn drop(&mut self) {
+         }
+     }
+ 
++    /// An enabled clock whose rate cannot be changed by other clock consumers.
++    ///
++    /// This owns the clock, one enable reference, and one exclusive-rate claim.
++    /// All three are released in reverse order when the guard is dropped.
++    pub struct ExclusiveEnabledClk(Clk);
++
++    impl ExclusiveEnabledClk {
++        /// Sets and exclusively claims the rate, then enables the clock.
++        pub fn new(clk: Clk, rate: Hertz) -> Result<Self> {
++            // SAFETY: Clk owns a live clock reference. This acquires one rate
++            // claim, which is paired below on error or in Drop on success.
++            to_result(unsafe { bindings::clk_set_rate_exclusive(clk.as_raw(), rate.as_hz()) })?;
++            if let Err(err) = clk.prepare_enable() {
++                // SAFETY: Balances the successful exclusive claim above.
++                unsafe { bindings::clk_rate_exclusive_put(clk.as_raw()) };
++                return Err(err);
++            }
++            Ok(Self(clk))
++        }
++
++        /// Returns the stable clock frequency held by this guard.
++        pub fn rate(&self) -> Hertz {
++            self.0.rate()
++        }
++    }
++
++    impl Drop for ExclusiveEnabledClk {
++        fn drop(&mut self) {
++            self.0.disable_unprepare();
++            // SAFETY: Exactly one successful rate claim belongs to this guard.
++            unsafe { bindings::clk_rate_exclusive_put(self.0.as_raw()) };
++        }
++    }
++
+     /// A reference-counted optional clock.
+     ///
+     /// A lightweight wrapper around an optional [`Clk`]. An [`OptionalClk`] represents a [`Clk`]
+diff --git a/rust/kernel/fs/kiocb.rs b/rust/kernel/fs/kiocb.rs
+index 84c936cd69b0e9b490d54c87d8c7279b27d4476a..ec33d3f8e3143f746a247addf1ba920685a5afe6 100644
+--- a/rust/kernel/fs/kiocb.rs
++++ b/rust/kernel/fs/kiocb.rs
+@@ -54,6 +54,13 @@ pub fn file(&self) -> <T as ForeignOwnable>::Borrowed<'a> {
+         unsafe { <T as ForeignOwnable>::borrow(private) }
+     }
+ 
++    /// Returns the current file flags, including changes made with `fcntl`.
++    pub fn flags(&self) -> u32 {
++        // Match `File::flags()`'s READ_ONCE-equivalent access.
++        // SAFETY: The kiocb keeps its file alive for the duration of this call.
++        unsafe { core::ptr::addr_of!((*(*self.as_raw()).ki_filp).f_flags).read_volatile() }
++    }
++
+     /// Gets the current value of `ki_pos`.
+     pub fn ki_pos(&self) -> i64 {
+         // SAFETY: We have shared access to the kiocb, so we can read its `ki_pos` field.
+diff --git a/rust/kernel/lib.rs b/rust/kernel/lib.rs
+index 9512af7156df2abe4fa8c138def96f234725b82e..60b8a706d8750dd8553fce76b3882b9cab604d07 100644
+--- a/rust/kernel/lib.rs
++++ b/rust/kernel/lib.rs
+@@ -118,6 +118,8 @@
+ pub mod safety;
+ pub mod scatterlist;
+ pub mod security;
++#[cfg(CONFIG_SERIAL_CORE = "y")]
++pub mod serial;
+ pub mod seq_file;
+ pub mod sizes;
+ #[cfg(CONFIG_SOC_BUS)]
+diff --git a/rust/kernel/miscdevice.rs b/rust/kernel/miscdevice.rs
+index 83ce50def5ac906a6a87e02b3e2e019b50f94c58..42fa982217dea0c3d54bcb14785378ac8779ea40 100644
+--- a/rust/kernel/miscdevice.rs
++++ b/rust/kernel/miscdevice.rs
+@@ -26,6 +26,7 @@
+     mm::virt::VmaNew,
+     prelude::*,
+     seq_file::SeqFile,
++    sync::poll::PollTable,
+     types::{
+         ForeignOwnable,
+         Opaque, //
+@@ -33,6 +34,15 @@
+ };
+ use core::marker::PhantomData;
+ 
++/// Readable data is available.
++pub const POLLIN: u32 = bindings::EPOLLIN | bindings::EPOLLRDNORM;
++/// The device can accept output.
++pub const POLLOUT: u32 = bindings::EPOLLOUT | bindings::EPOLLWRNORM;
++/// The device has been disconnected.
++pub const POLLHUP: u32 = bindings::EPOLLHUP;
++/// The device has an error to report.
++pub const POLLERR: u32 = bindings::EPOLLERR;
++
+ /// Options for creating a misc device.
+ #[derive(Copy, Clone)]
+ pub struct MiscDeviceOptions {
+@@ -123,6 +133,12 @@ fn drop(self: Pin<&mut Self>) {
+ /// Trait implemented by the private data of an open misc device.
+ #[vtable]
+ pub trait MiscDevice: Sized {
++    /// Module owning the file operations, pinned while a file remains open.
++    const OWNER: &'static crate::ThisModule;
++
++    /// Whether this device is a nonseekable, position-independent byte stream.
++    const STREAM: bool = false;
++
+     /// What kind of pointer should `Self` be wrapped in.
+     type Ptr: ForeignOwnable + Send + Sync;
+ 
+@@ -162,6 +178,15 @@ fn write_iter(_kiocb: Kiocb<'_, Self::Ptr>, _iov: &mut IovIterSource<'_>) -> Res
+         build_error!(VTABLE_DEFAULT_ERROR)
+     }
+ 
++    /// Registers wait queues and returns the current readiness mask.
++    fn poll(
++        _device: <Self::Ptr as ForeignOwnable>::Borrowed<'_>,
++        _file: &File,
++        _table: &PollTable<'_>,
++    ) -> u32 {
++        build_error!(VTABLE_DEFAULT_ERROR)
++    }
++
+     /// Handler for ioctls.
+     ///
+     /// The `cmd` argument is usually manipulated using the utilities in [`kernel::ioctl`].
+@@ -213,7 +238,13 @@ impl<T: MiscDevice> MiscdeviceVTable<T> {
+     /// The file must be associated with a `MiscDeviceRegistration<T>`.
+     unsafe extern "C" fn open(inode: *mut bindings::inode, raw_file: *mut bindings::file) -> c_int {
+         // SAFETY: The pointers are valid and for a file being opened.
+-        let ret = unsafe { bindings::generic_file_open(inode, raw_file) };
++        let ret = unsafe {
++            if T::STREAM {
++                bindings::stream_open(inode, raw_file)
++            } else {
++                bindings::generic_file_open(inode, raw_file)
++            }
++        };
+         if ret != 0 {
+             return ret;
+         }
+@@ -398,7 +429,28 @@ impl<T: MiscDevice> MiscdeviceVTable<T> {
+         T::show_fdinfo(device, m, file);
+     }
+ 
++    /// # Safety
++    ///
++    /// `raw_file` must be a live file opened by this vtable. `table` must be
++    /// null or a valid poll table for the duration of the callback.
++    unsafe extern "C" fn poll(
++        raw_file: *mut bindings::file,
++        table: *mut bindings::poll_table,
++    ) -> u32 {
++        // SAFETY: VFS calls this only for a live file opened by Self::open().
++        let private = unsafe { (*raw_file).private_data };
++        // SAFETY: The private pointer remains owned by this file until release().
++        let device = unsafe { <T::Ptr as ForeignOwnable>::borrow(private) };
++        // SAFETY: The callback provides a live file; no fdget_pos region is active here.
++        let file = unsafe { File::from_raw_file(raw_file) };
++        // SAFETY: VFS supplies a null or valid poll table for the callback duration.
++        let table = unsafe { PollTable::from_raw(table) };
++        T::poll(device, file, &table)
++    }
++
+     const VTABLE: bindings::file_operations = bindings::file_operations {
++        owner: T::OWNER.as_ptr(),
++        poll: if T::HAS_POLL { Some(Self::poll) } else { None },
+         open: Some(Self::open),
+         release: Some(Self::release),
+         mmap: if T::HAS_MMAP { Some(Self::mmap) } else { None },
+diff --git a/samples/rust/rust_misc_device.rs b/samples/rust/rust_misc_device.rs
+index 41e26c825060bbf7754609b873cdef1a577dc85d..3194f736a255908268bd2f43e261ad296c34bf2b 100644
+--- a/samples/rust/rust_misc_device.rs
++++ b/samples/rust/rust_misc_device.rs
+@@ -175,6 +175,7 @@ struct RustMiscDevice {
+ 
+ #[vtable]
+ impl MiscDevice for RustMiscDevice {
++    const OWNER: &'static ThisModule = &THIS_MODULE;
+     type Ptr = Pin<KBox<Self>>;
+ 
+     fn open(_file: &File, misc: &MiscDeviceRegistration<Self>) -> Result<Pin<KBox<Self>>> {

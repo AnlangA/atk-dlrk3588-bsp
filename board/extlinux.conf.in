@@ -1,0 +1,11 @@
+# Template for a fresh boot partition. board/install.sh reuses the APPEND line
+# of the entry that is already the default on an installed board instead.
+# @LABEL@, @TITLE@ and @DIR@ are filled in by scripts/package.sh.
+DEFAULT @LABEL@
+TIMEOUT 30
+
+LABEL @LABEL@
+    MENU LABEL @TITLE@
+    LINUX /@DIR@/Image
+    FDT /@DIR@/rk3588-atk-dlrk3588.dtb
+    APPEND console=ttyS2,1500000n8 earlycon=uart8250,mmio32,0xfeb50000 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rw

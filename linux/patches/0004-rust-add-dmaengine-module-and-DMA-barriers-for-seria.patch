@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Sat, 12 Sep 2026 22:03:43 +0800
+Subject: [PATCH 4/4] rust: add dmaengine module and DMA barriers for serial
+ DMA
+
+Register the `dmaengine` module (compiled when DMA_ENGINE is built in),
+make the `serial` module depend on it, include dmaengine.h in the
+bindings and the dmaengine C helper file, and add dma_wmb()/dma_rmb()
+helpers plus their Rust wrappers so coherent buffer ownership transfers
+are ordered from Rust.
+
+[atk-dlrk3588-bsp] Glue from AnlangA/linux commit
+44268fd8bbeb874cea782248f8384bb3c28f4419. The new files of that commit
+(rust/kernel/dmaengine.rs, rust/kernel/serial/dma.rs,
+rust/kernel/serial/dma/state.rs, rust/helpers/dmaengine.c) are provided
+by linux/overlay/.
+---
+ rust/bindings/bindings_helper.h |  1 +
+ rust/helpers/barrier.c          | 10 ++++++++++
+ rust/helpers/helpers.c          |  1 +
+ rust/kernel/lib.rs              |  4 +++-
+ rust/kernel/sync/barrier.rs     | 14 ++++++++++++++
+ 5 files changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/rust/bindings/bindings_helper.h b/rust/bindings/bindings_helper.h
+index c66babe21612dddf0e4cf695d529e577bcc086bd..98c16c2e8981de31f765314bc84cfdbb791ad51a 100644
+--- a/rust/bindings/bindings_helper.h
++++ b/rust/bindings/bindings_helper.h
+@@ -55,6 +55,7 @@
+ #include <linux/dma-direction.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/dma-resv.h>
++#include <linux/dmaengine.h>
+ #include <linux/errname.h>
+ #include <linux/ethtool.h>
+ #include <linux/fdtable.h>
+diff --git a/rust/helpers/barrier.c b/rust/helpers/barrier.c
+index fed8853745c83639c32f79335e40b9494db11e98..7d681b1c4ab60865e674c02bcf24d0927b0b3fb3 100644
+--- a/rust/helpers/barrier.c
++++ b/rust/helpers/barrier.c
+@@ -16,3 +16,13 @@ __rust_helper void rust_helper_smp_rmb(void)
+ {
+ 	smp_rmb();
+ }
++
++__rust_helper void rust_helper_dma_wmb(void)
++{
++	dma_wmb();
++}
++
++__rust_helper void rust_helper_dma_rmb(void)
++{
++	dma_rmb();
++}
+diff --git a/rust/helpers/helpers.c b/rust/helpers/helpers.c
+index 98ad628a445e07d95740326c783cb040b411f8e1..7e36d53950815bc61841fe2867bd7fb20aaf777c 100644
+--- a/rust/helpers/helpers.c
++++ b/rust/helpers/helpers.c
+@@ -59,6 +59,7 @@
+ #include "device.c"
+ #include "dma.c"
+ #include "dma-resv.c"
++#include "dmaengine.c"
+ #include "drm.c"
+ #include "drm_gpuvm.c"
+ #include "err.c"
+diff --git a/rust/kernel/lib.rs b/rust/kernel/lib.rs
+index 60b8a706d8750dd8553fce76b3882b9cab604d07..3bf4f82bb5518607d7f7604a92a6e75666564370 100644
+--- a/rust/kernel/lib.rs
++++ b/rust/kernel/lib.rs
+@@ -64,6 +64,8 @@
+ pub mod device_id;
+ pub mod devres;
+ pub mod dma;
++#[cfg(CONFIG_DMA_ENGINE = "y")]
++pub mod dmaengine;
+ pub mod driver;
+ #[cfg(CONFIG_DRM = "y")]
+ pub mod drm;
+@@ -118,7 +120,7 @@
+ pub mod safety;
+ pub mod scatterlist;
+ pub mod security;
+-#[cfg(CONFIG_SERIAL_CORE = "y")]
++#[cfg(all(CONFIG_SERIAL_CORE = "y", CONFIG_DMA_ENGINE = "y"))]
+ pub mod serial;
+ pub mod seq_file;
+ pub mod sizes;
+diff --git a/rust/kernel/sync/barrier.rs b/rust/kernel/sync/barrier.rs
+index 8f2d435fcd94446e4cb429b1736918deb031576e..2161b67a48b65b24ab980c60d6bf5c24678d2859 100644
+--- a/rust/kernel/sync/barrier.rs
++++ b/rust/kernel/sync/barrier.rs
+@@ -7,6 +7,20 @@
+ //!
+ //! [`LKMM`]: srctree/tools/memory-model/
+ 
++/// Orders CPU writes to coherent DMA memory before device ownership is published.
++#[inline(always)]
++pub fn dma_wmb() {
++    // SAFETY: The DMA memory barrier has no preconditions, including on UP.
++    unsafe { bindings::dma_wmb() };
++}
++
++/// Orders reads of coherent DMA memory after observing device completion.
++#[inline(always)]
++pub fn dma_rmb() {
++    // SAFETY: The DMA memory barrier has no preconditions, including on UP.
++    unsafe { bindings::dma_rmb() };
++}
++
+ /// A compiler barrier.
+ ///
+ /// A barrier that prevents compiler from reordering memory accesses across the barrier.

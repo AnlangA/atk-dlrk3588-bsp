@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: rk3588-dev <dev@local>
+Date: Tue, 8 Sep 2026 23:22:26 +0800
+Subject: [PATCH] rockchip: rk3588: register the Alientek ATK-DLRK3588 target
+
+Add TARGET_ATK_DLRK3588 to the RK3588 target choice and source the
+board's Kconfig. Everything else the board needs is a new file and is
+provided by atk-dlrk3588-bsp/u-boot/overlay: the device tree and its
+U-Boot fixups, board/rockchip/atk_dlrk3588/, configs/atk-dlrk3588_defconfig
+and include/configs/atk_dlrk3588.h.
+
+Board summary: UART2 debug console at 1500000 baud, eMMC (HS200 in
+U-Boot) as mmc0, MicroSD as mmc1 with active-low power on GPIO0_B7, RK806
+on SPI2, two gigabit MACs, USB2 host ports and DWC3.
+
+[atk-dlrk3588-bsp] Kconfig hunk of AnlangA/u-boot commit
+c3b7ec1fff0; the overlay files carry the follow-up fixes from commits
+d3e01e84872 (PMIC regulators, early console, HS200) and aa90a5b4566
+(SD power polarity), which were validated on the board.
+---
+ arch/arm/mach-rockchip/rk3588/Kconfig | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/rk3588/Kconfig b/arch/arm/mach-rockchip/rk3588/Kconfig
+index 841ae490e85a4c879f331bdbd8f105f739917523..2c80b8cc90885539e46907a1026df9a944712280 100644
+--- a/arch/arm/mach-rockchip/rk3588/Kconfig
++++ b/arch/arm/mach-rockchip/rk3588/Kconfig
+@@ -1,5 +1,23 @@
+ if ROCKCHIP_RK3588
+ 
++config TARGET_ATK_DLRK3588
++	bool "Alientek ATK-DLRK3588 development board"
++	help
++	  ATK-DLRK3588 is a RK3588 based development board from Alientek.
++
++	  Specification:
++	  - Rockchip RK3588 SoC
++	  - 4x ARM Cortex-A76, 4x ARM Cortex-A55
++	  - 8/16GB memory LPDDR4
++	  - 32/64GB eMMC
++	  - MicroSD slot
++	  - 2x Gigabit Ethernet (RTL8211F)
++	  - 1x USB 2.0 Type-A, 1x USB 3.0 Type-A
++	  - 2x USB 3.0 Type-C
++	  - 1x HDMI 2.1 output, 1x HDMI input
++	  - 1x PCIe 3.0 x4, 1x PCIe 2.0, 1x SATA 3.0
++	  - RTC (AT8563), audio codec (ES8388), fan (PWM)
++
+ config TARGET_EVB_RK3588
+ 	bool "Rockchip EVB1 v10"
+ 	help
+@@ -424,6 +442,7 @@ config ROCKCHIP_STIMER_BASE
+ config SYS_SOC
+ 	default "rk3588"
+ 
++source "board/rockchip/atk_dlrk3588/Kconfig"
+ source "board/armsom/sige7-rk3588/Kconfig"
+ source "board/coolpi/genbook_cm5_rk3588/Kconfig"
+ source "board/edgeble/neural-compute-module-6/Kconfig"

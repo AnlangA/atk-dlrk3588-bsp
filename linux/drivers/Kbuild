@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Out-of-tree Rust modules for the ATK-DLRK3588. They only use the kernel
+# crate APIs added by ../patches, so no in-tree Kconfig entry is needed;
+# build them with make -C <kernel> O=<build> M=$(pwd) MO=<out> modules.
+obj-m += rust_dw_uart.o
+obj-m += rust_chardev.o

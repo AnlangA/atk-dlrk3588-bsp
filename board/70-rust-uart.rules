@@ -1,0 +1,2 @@
+SUBSYSTEM=="tty", KERNEL=="ttyRU[0-9]*", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="misc", KERNEL=="rust-chardev", GROUP="dialout", MODE="0660"
