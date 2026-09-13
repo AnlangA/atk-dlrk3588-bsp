@@ -59,11 +59,15 @@ cp local.env.example local.env   # 按本机填写工具链路径、开发板地
 make fetch                       # 浅克隆 Linux v7.2.5、U-Boot v2026.10-rc4，下载 rkbin 固件
 make linux                       # 打补丁、复制 overlay、配置并编译内核、树外模块和 DTB
 make uboot                       # 打补丁、复制 overlay、生成板级 DDR blob 并编译 U-Boot
-make app                         # 交叉编译 rs485-test 与 driver-test-init
+make app                         # 交叉编译 rs485-test 与 driver-test-init（不需要内核树）
 make check                       # shellcheck、rustfmt、clippy、宿主机测试
 make qemu                        # 在 QEMU 中加载 ARM64 模块并运行字符设备测试
 make package                     # 生成 build/deploy/ 部署包
 ```
+
+各目标相互独立：`make app` 与 `make check` 只需要 cargo 和交叉链接器，`make uboot`
+不依赖内核；`app/rs485-test/` 本身是可单独编译的 Cargo 工程，复制到任何地方
+`cargo build` 即可，见 [app/rs485-test/README.md](app/rs485-test/README.md)。
 
 产物：
 
@@ -103,6 +107,12 @@ Image 时脚本会列出现有目录，用 `--boot-dir <目录>` 指定替换其
 
 ```sh
 sudo /var/tmp/atk-dlrk3588-bsp/payload/board-smoke.sh 7.2.5-atk-dlrk3588+
+```
+
+只更新应用（驱动未变，不必重启）：
+
+```sh
+make app && make deploy-app DEPLOY_ARGS=--check   # 安装到 /usr/local/bin 并在板上跑一次 chardev 测试
 ```
 
 它检查内核版本、`/dev/rust-chardev`、UART3 绑定到 `/dev/ttyRU0`、9600–1500000

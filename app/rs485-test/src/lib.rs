@@ -261,20 +261,12 @@ pub fn deadline(timeout: Duration) -> io::Result<Instant> {
         .ok_or_else(|| invalid("timeout is too large"))
 }
 
-// The kernel-side sources are compiled into the host test binary unchanged:
-// the out-of-tree modules from linux/drivers and the DMA bookkeeping from the
-// kernel crate overlay in linux/overlay.
+// The kernel-side sources (ring buffer, register encoding, DMA completion
+// bookkeeping) are compiled into the host test binary unchanged. build.rs
+// generates the module declarations when the BSP checkout is available, so a
+// standalone copy of this crate still builds and tests on its own.
 #[cfg(test)]
-#[path = "../../../linux/drivers/rust_chardev/ring.rs"]
-mod ring_tests;
-
-#[cfg(test)]
-#[allow(dead_code)]
-#[path = "../../../linux/overlay/rust/kernel/serial/dma/state.rs"]
-mod dma_state_tests;
-#[cfg(test)]
-#[path = "../../../linux/drivers/rust_dw_uart/config.rs"]
-mod uart_config_tests;
+include!(concat!(env!("OUT_DIR"), "/kernel_side_tests.rs"));
 
 #[cfg(test)]
 mod tests {
