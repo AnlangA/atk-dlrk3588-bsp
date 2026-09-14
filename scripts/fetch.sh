@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-2.0-only
 # Fetch the pinned upstream sources listed in manifest.env into external/.
-# Usage: fetch.sh [linux|u-boot|rkbin]...   (default: all)
+# Usage: fetch.sh [linux|u-boot|rkbin|ubuntu-base]...   (default: all)
 # shellcheck source=lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
 need_cmd git curl sha256sum
@@ -37,12 +37,13 @@ fetch_blob() {
 }
 
 targets=("$@")
-[[ ${#targets[@]} -gt 0 ]] || targets=(linux u-boot rkbin)
+[[ ${#targets[@]} -gt 0 ]] || targets=(linux u-boot rkbin ubuntu-base)
 mkdir -p "$BSP_EXTERNAL"
 for target in "${targets[@]}"; do
 	case $target in
 	linux) clone_at_tag "$LINUX_SRC" "$LINUX_URL" "$LINUX_TAG" "$LINUX_COMMIT" ;;
 	u-boot) clone_at_tag "$UBOOT_SRC" "$UBOOT_URL" "$UBOOT_TAG" "$UBOOT_COMMIT" ;;
+	ubuntu-base) "$BSP_ROOT/scripts/fetch-ubuntu-base.sh" ;;
 	rkbin)
 		fetch_blob "$RKBIN_BL31" "$RKBIN_BL31_SHA256"
 		fetch_blob "$RKBIN_DDR" "$RKBIN_DDR_SHA256"

@@ -4,4 +4,6 @@
 /build/
 # Host-specific toolchain paths and board address.
 /local.env
+# Board credentials and retained, customized Ubuntu recovery snapshots.
+/local/
 __pycache__/

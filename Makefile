@@ -8,7 +8,7 @@
 all: linux uboot app
 
 fetch:
-	scripts/fetch.sh
+	scripts/fetch.sh $(FETCH_TARGETS)
 
 prepare:
 	scripts/prepare.sh linux
@@ -52,7 +52,8 @@ distclean: clean
 	rm -rf external
 
 help:
-	@echo 'make fetch          clone Linux $(LINUX_TAG), U-Boot $(UBOOT_TAG) and the rkbin blobs into external/'
+	@echo 'make fetch          fetch Linux $(LINUX_TAG), U-Boot $(UBOOT_TAG), rkbin and Ubuntu Base $(UBUNTU_BASE_VERSION) into external/'
+	@echo '                    FETCH_TARGETS="ubuntu-base" selects only Ubuntu Base'
 	@echo 'make linux          patch + configure + build kernel, out-of-tree modules and DTB'
 	@echo 'make uboot          patch + build U-Boot with the derived DDR blob and BL31'
 	@echo 'make app            cross-build rs485-test and driver-test-init (no kernel needed)'

@@ -12,6 +12,7 @@ out-of-tree 工程的组织方式，直接在 **未修改的主线 Linux 与 U-B
 | Linux | kernel.org stable | `v7.2.5` |
 | U-Boot | u-boot/u-boot | `v2026.10-rc4` |
 | 固件 | rockchip-linux/rkbin `50942f0b` | BL31 v1.46，DDR v1.17（板级参数见下） |
+| Ubuntu Base | cdimage.ubuntu.com | `26.04.1` ARM64 |
 
 工具链：Rust 1.98、Clang/LLVM 21、bindgen 0.72、AArch64 GCC（U-Boot 与应用链接）。
 
@@ -26,7 +27,7 @@ out-of-tree 工程的组织方式，直接在 **未修改的主线 Linux 与 U-B
 
 ```text
 atk-dlrk3588-bsp/
-├── manifest.env            # 固定上游源码版本与固件校验值
+├── manifest.env            # 固定 Linux/U-Boot、rkbin 和 Ubuntu Base 版本与校验值
 ├── Makefile                # make fetch / linux / uboot / app / check / qemu / package / deploy
 ├── scripts/                # 各目标对应的脚本，可单独运行
 ├── linux/
@@ -63,7 +64,7 @@ atk-dlrk3588-bsp/
 
 ```sh
 cp local.env.example local.env   # 按本机填写工具链路径、开发板地址（可选）
-make fetch                       # 浅克隆 Linux v7.2.5、U-Boot v2026.10-rc4，下载 rkbin 固件
+make fetch                       # 获取 Linux、U-Boot、rkbin 与 Ubuntu Base（校验并解压）
 make linux                       # 打补丁、复制 overlay、配置并编译内核、树外模块和 DTB
 make uboot                       # 打补丁、复制 overlay、生成板级 DDR blob 并编译 U-Boot
 make app                         # 交叉编译 rs485-test 与 driver-test-init（不需要内核树）
@@ -94,6 +95,18 @@ make -C external/linux O=build/linux ARCH=arm64 LLVM=-21 \
      BINDGEN=$PWD/scripts/bindgen.sh \
      M=$PWD/linux/dts MO=$PWD/build/linux-dts
 ```
+
+## Ubuntu Base
+
+`make fetch` 同时下载并校验 Ubuntu Base 26.04.1 ARM64，原始包和纯净根目录分别位于
+`external/ubuntu-base/ubuntu-base-26.04.1-base-arm64.tar.gz`、`external/ubuntu-base/rootfs/`。
+只获取它时运行 `make fetch FETCH_TARGETS=ubuntu-base`，可设置 `UBUNTU_BASE_DIR`
+指定另一份上游目录。
+
+原项目定制的根文件系统、ext4 镜像、启动备份和凭据位于被 Git 忽略的
+`local/ubuntu-base/`。该目录被 `make clean` 和 `make distclean` 保留。
+开发板连接参数配置在 `local.env`，SSH 密钥路径示例见 `local.env.example`；
+部署使用下文的 `make deploy` 或 `make deploy-app`。
 
 ## 烧录与部署
 
