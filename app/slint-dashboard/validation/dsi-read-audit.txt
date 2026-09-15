@@ -1,0 +1,32 @@
+Readback audit after quiescing video for DCS reads.
+B2 parameter 12 reads 1f after programming 1e; retained as raw evidence.
+C1 expected=00 is a query placeholder: the initialization sequence does not write C1.
+
+display-id: 83 99 0c
+power: 9d
+pixel-format: 77
+self-diagnostic: c0
+status: 80 73 04 00
+red: 00
+green: 00
+blue: 00
+scanline-1: 07 a2
+scanline-2: 07 a2
+dsi-errors-1: 00
+dsi-errors-2: 00
+[38500.265034] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d2 ret=1 expected=77 actual=77 equal=1
+[38500.276198] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=cc ret=1 expected=04 actual=04 equal=1
+[38500.301797] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=b1 ret=15 expected=02 04 74 94 01 32 33 11 11 ab 4d 56 73 02 02 actual=02 04 74 94 01 32 33 11 11 ab 4d 56 73 02 02 equal=1
+[38500.312962] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=b2 ret=15 expected=00 80 80 ae 05 07 5a 11 00 00 10 1e 70 03 d4 actual=00 80 80 ae 05 07 5a 11 00 00 10 1f 70 03 d4 equal=0
+[38500.339215] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=b4 ret=44 expected=00 ff 02 c0 02 c0 00 00 08 00 04 06 00 32 04 0a 08 21 03 01 00 0f b8 8b 02 c0 02 c0 00 00 08 00 04 06 00 32 04 0a 08 01 00 0f b8 01 actual=00 ff 02 c0 02 c0 00 00 08 00 04 06 00 32 04 0a 08 21 03 01 00 0f b8 8b 02 c0 02 c0 00 00 08 00 04 06 00 32 04 0a 08 01 00 0f b8 01 equal=1
+[38500.350381] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d3 ret=33 expected=00 00 00 00 00 00 06 00 00 10 04 00 04 00 00 00 00 00 00 00 00 00 00 01 00 05 05 07 00 00 00 05 40 actual=00 00 00 00 00 00 06 00 00 10 04 00 04 00 00 00 00 00 00 00 00 00 00 01 00 05 05 07 00 00 00 05 40 equal=1
+[38500.376636] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d5 ret=32 expected=18 18 19 19 18 18 21 20 01 00 07 06 05 04 03 02 18 18 18 18 18 18 2f 2f 30 30 31 31 18 18 18 18 actual=18 18 19 19 18 18 21 20 01 00 07 06 05 04 03 02 18 18 18 18 18 18 2f 2f 30 30 31 31 18 18 18 18 equal=1
+[38500.387797] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d6 ret=32 expected=18 18 19 19 40 40 20 21 02 03 04 05 06 07 00 01 40 40 40 40 40 40 2f 2f 30 30 31 31 40 40 40 40 actual=18 18 19 19 40 40 20 21 02 03 04 05 06 07 00 01 40 40 40 40 40 40 2f 2f 30 30 31 31 40 40 40 40 equal=1
+[38500.413044] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d8 ret=16 expected=a2 aa 02 a0 a2 a8 02 a0 b0 00 00 00 b0 00 00 00 actual=a2 aa 02 a0 a2 a8 02 a0 b0 00 00 00 b0 00 00 00 equal=1
+[38500.450508] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d8 ret=16 expected=b0 00 00 00 b0 00 00 00 e2 aa 03 f0 e2 aa 03 f0 actual=b0 00 00 00 b0 00 00 00 e2 aa 03 f0 e2 aa 03 f0 equal=1
+[38500.487656] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=d8 ret=8 expected=e2 aa 03 f0 e2 aa 03 f0 actual=e2 aa 03 f0 e2 aa 03 f0 equal=1
+[38500.524800] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=b6 ret=2 expected=8d 8d actual=8d 8d equal=1
+[38500.535960] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=e0 ret=54 expected=00 0e 19 13 2e 39 48 44 4d 57 5f 66 6c 76 7f 85 8a 95 9a a4 9b ab b0 5c 58 64 77 00 0e 19 13 2e 39 48 44 4d 57 5f 66 6c 76 7f 85 8a 95 9a a4 9b ab b0 5c 58 64 77 actual=00 0e 19 13 2e 39 48 44 4d 57 5f 66 6c 76 7f 85 8a 95 9a a4 9b ab b0 5c 58 64 77 00 0e 19 13 2e 39 48 44 4d 57 5f 66 6c 76 7f 85 8a 95 9a a4 9b ab b0 5c 58 64 77 equal=1
+[38500.562214] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=c2 ret=1 expected=03 actual=03 equal=1
+[38500.573374] panel-alientek-md0550 fde20000.dsi.0: SINK_AUDIT cmd=c1 ret=1 expected=00 actual=0c equal=0
+4096

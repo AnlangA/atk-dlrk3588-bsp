@@ -1,0 +1,94 @@
+{
+  "recorded_at": "2026-09-15T13:25:38.907682+00:00",
+  "host": {
+    "result": "PASS",
+    "rustfmt": "PASS",
+    "clippy": "PASS (-D warnings)",
+    "rust_tests": 6,
+    "boot_config_tests": 3,
+    "panel_id_tests": 2,
+    "python_syntax": "PASS",
+    "linker_smoke": "PASS: SDK GCC 10.3.1 with Rust 1.98.1 bundled LLD"
+  },
+  "vendor": {
+    "crate": "i-slint-backend-linuxkms",
+    "version": "1.17.1",
+    "archive_sha256": "68e76f2b13846ca54bba6b8eb3b5454b26879ad987396d0a2d8abedc31a6c469",
+    "patch": "app/slint-dashboard/patches/0001-gbm-negotiate-scanout-modifiers.patch",
+    "patched_archive_matches_vendor": true,
+    "file_count": 27
+  },
+  "paused_gpu": {
+    "result": "PASS",
+    "renderer": "Mali-G610 MC4 (Panfrost)",
+    "scope": "gpu_kms_panel_control",
+    "visible_image_verified": false,
+    "gpu_execution_ns": 2646583,
+    "gpu_redraw_requested": true,
+    "screenshot": {
+      "width": 1080,
+      "height": 1920,
+      "bytes": 104816
+    },
+    "synthetic_touch": false,
+    "panel": {
+      "id": "83990c",
+      "status": "80730400",
+      "dsi_errors": [
+        0,
+        0
+      ],
+      "scanlines": [
+        1954,
+        138
+      ],
+      "host_mode": 3,
+      "rgb_readback_raw": "000000"
+    },
+    "dsi_clock": {
+      "parent": "cpll",
+      "rate_hz": 375000000
+    },
+    "prescan_hsync": 8,
+    "pid": 340,
+    "kernel_taint": 4096
+  },
+  "pause_preserved_by_gpu_check": true,
+  "touch_started_paused": {
+    "result": "PASS",
+    "renderer": "Mali-G610 MC4 (Panfrost)",
+    "scope": "gpu_kms_panel_control",
+    "visible_image_verified": false,
+    "gpu_execution_ns": 2654459,
+    "gpu_redraw_requested": true,
+    "screenshot": {
+      "width": 1080,
+      "height": 1920,
+      "bytes": 104816
+    },
+    "synthetic_touch": true,
+    "panel": {
+      "id": "83990c",
+      "status": "80730400",
+      "dsi_errors": [
+        0,
+        0
+      ],
+      "scanlines": [
+        1954,
+        62
+      ],
+      "host_mode": 3,
+      "rgb_readback_raw": "000000"
+    },
+    "dsi_clock": {
+      "parent": "cpll",
+      "rate_hz": 375000000
+    },
+    "prescan_hsync": 8,
+    "pid": 340,
+    "kernel_taint": 4096
+  },
+  "final_pause_state": false,
+  "application_or_kernel_redeployed": false
+}

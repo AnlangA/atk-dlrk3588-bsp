@@ -1,0 +1,37 @@
+{
+  "result": "PASS",
+  "renderer": "Mali-G610 MC4 (Panfrost)",
+  "scope": "gpu_kms_panel_control",
+  "visible_image_verified": false,
+  "gpu_execution_ns": 5755167,
+  "screenshot": {
+    "width": 1080,
+    "height": 1920,
+    "bytes": 101372
+  },
+  "synthetic_touch": true,
+  "panel": {
+    "id": "83990c",
+    "status": "80730400",
+    "dsi_errors": [
+      0,
+      0
+    ],
+    "scanlines": [
+      1954,
+      80
+    ],
+    "host_mode": 3,
+    "rgb_readback_raw": "000000"
+  },
+  "dsi_clock": {
+    "parent": "cpll",
+    "rate_hz": 375000000
+  },
+  "prescan_hsync": 8,
+  "pid": 340,
+  "kernel_taint": 4096,
+  "boot_id": "73928060-bd62-47cb-9d6a-175e21e276fc",
+  "service_restarts": 0,
+  "temporary_clock_module_loaded": false
+}

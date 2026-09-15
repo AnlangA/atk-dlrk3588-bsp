@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "record_kind": "deployed_baseline_and_source_snapshot",
+  "recorded_at": "2026-09-15T13:25:38.907682+00:00",
+  "observed_board": {
+    "recorded_at": "2026-09-15T13:25:38.907682+00:00",
+    "kernel_release": "7.2.5-atk-dlrk3588+",
+    "boot_id": "73928060-bd62-47cb-9d6a-175e21e276fc",
+    "service": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "InvocationID": "af159f0deb39430b9e1f8b84abf1563c",
+      "MainPID": "340",
+      "NRestarts": "0",
+      "User": "slint-display",
+      "Group": "slint-display",
+      "SupplementaryGroups": "video render"
+    },
+    "dsi_clock": {
+      "parent": "cpll",
+      "rate_hz": 375000000
+    },
+    "temporary_clock_module_loaded": false,
+    "kernel_taint": 4096,
+    "packages": {
+      "libegl-mesa0:arm64": "26.0.8-1ubuntu0.3",
+      "libgbm1:arm64": "26.0.8-1ubuntu0.3",
+      "libgl1-mesa-dri:arm64": "26.0.8-1ubuntu0.3",
+      "libinput10:arm64": "1.31.1-1ubuntu1.2",
+      "libseat1:arm64": "0.9.2-2",
+      "linux-firmware-misc": "20260319.git217ca6e4-0ubuntu2.2",
+      "seatd": "0.9.2-2"
+    },
+    "installed_artifacts": {
+      "kernel": {
+        "path": "/boot/atk-dlrk3588-bsp/Image",
+        "bytes": 41253376,
+        "sha256": "7f5b1e165c730e404725261c585426a2e3fe3a60c1950059cdf1bb8b7ef6fad8"
+      },
+      "dtb": {
+        "path": "/boot/atk-dlrk3588-bsp/rk3588-atk-dlrk3588.dtb",
+        "bytes": 103532,
+        "sha256": "60da4fd6ca83050f1d1b6a925bd44962e9e13ec30d01cb5fa1bf1d5b4068c182"
+      },
+      "application": {
+        "path": "/usr/local/bin/slint-dashboard",
+        "bytes": 14459128,
+        "sha256": "e77994b095278450de9ba7dfb5b5eee4bd374118a1b79efe5593b1df7fec9c5c"
+      },
+      "firmware": {
+        "path": "/lib/firmware/arm/mali/arch10.8/mali_csffw.bin",
+        "bytes": 282624,
+        "sha256": "a27847ea11f8efb3136340c3ba8aab413ae25145eeb4a7f64ff5edd829a2405b"
+      },
+      "unit": {
+        "path": "/etc/systemd/system/slint-dashboard.service",
+        "bytes": 1215,
+        "sha256": "c42dc43e9ffe6c6617937252996c9d3d006a432a6bc7961e5b8adaf19f7b3a82"
+      },
+      "wait_script": {
+        "path": "/usr/local/libexec/slint-wait-display",
+        "bytes": 923,
+        "sha256": "d4205bc7731ac6947b273381d38ab07ddcc6ee008f93d8d3d26d3d697f0c76ec"
+      },
+      "display_configuration": {
+        "path": "/etc/default/slint-dashboard",
+        "bytes": 345,
+        "sha256": "20a4c7882eb1de9ef7f6055ea8445bede7c5129706edaa24dc25b1dfb6c93860"
+      },
+      "panel_alientek_md0550": {
+        "path": "/lib/modules/7.2.5-atk-dlrk3588+/updates/panel-alientek-md0550.ko",
+        "bytes": 16272,
+        "sha256": "0b15fed582ea9f45400bb02d22dc51375a9d8be645dcb4ea2d2826c3cf9b10af"
+      },
+      "dw_mipi_dsi2": {
+        "path": "/lib/modules/7.2.5-atk-dlrk3588+/kernel/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.ko",
+        "bytes": 19816,
+        "sha256": "de9696df97a06cf7e3186f32d95b182fa4dc51b1553d3fe5e680a8d406dfa2ad"
+      },
+      "rockchipdrm": {
+        "path": "/lib/modules/7.2.5-atk-dlrk3588+/kernel/drivers/gpu/drm/rockchip/rockchipdrm.ko",
+        "bytes": 339136,
+        "sha256": "9c1f8de61b3d1f2af61e8cc824ffa3657579cbe32afed6ac2ea5d47a63dd49c8"
+      }
+    }
+  },
+  "slint_version": "1.17.1",
+  "host_rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "prepared_linux_commit": "f127390ad4097cd3c543fcb8c1ba8b158477aca6",
+  "bsp_contains_uncommitted_changes": true,
+  "source_hashes": {
+    "app/slint-dashboard/Cargo.lock": "5a81213adf22806b12557706549bec285c8d640b6705b5ccf61dcc0cf1c99b10",
+    "app/slint-dashboard/Cargo.toml": "758db78c4c52342f46d1dd50490ed8953db9e5158ea9494cc85fda71962894d4",
+    "app/slint-dashboard/build.rs": "dee897467767d0033eb77292fd18a8d4d44bfcf32e32374f7a4554e54c20c3af",
+    "app/slint-dashboard/patches/0001-gbm-negotiate-scanout-modifiers.patch": "985e652cc2ced207fdf7740f2036ff3ccc21a87af865339f7b859aec8d750fa9",
+    "app/slint-dashboard/src/gpu.rs": "01fd7025fc499745a896e168fae326abf0d885cd39c0b5b50b701217a0bc62db",
+    "app/slint-dashboard/src/main.rs": "59f5505e4d2f745890eda3e3d1fd6cedfc11f2b1425fb6ea9c388a34d79834db",
+    "app/slint-dashboard/src/metrics.rs": "5ff8612080b83074ea54649bcd1372fb50524e82e87c2de33ac33ca45b008b11",
+    "app/slint-dashboard/src/snapshot.rs": "5ef953e62f42ade07c08aa1d38cb0effa13fa7e6f5632557e9b8a068d5028bd7",
+    "app/slint-dashboard/ui/dashboard.slint": "c49cb05596e2d3faef25cfe40d38bfede1572c3c96f23675c816d85dd357cf4e",
+    "board/detect-mipi-panel.py": "de31d7c353abd1c19ee577f8620f20165ff007aed0cf6bb6ef68d1ed39133cc1",
+    "board/install-display-dtb.py": "39dfeef9ee54b54493facf412a4755e00043c96a3e76cd6e55a58d42d6e18dcf",
+    "board/install-display.sh": "5cb651b2be599769c6c59cf1f9ac41498b4af77670842f0c399b47b5eaa2af8c",
+    "board/install.sh": "165b851ee13106d3ff8552ac6f92f0a3156c81a695a09ea9096b363a10ea882a",
+    "board/prepare-display.sh": "67f59539b0fd9976218b1abd9f4e9750f66bbcb8506ad20607a89430a83f4313",
+    "board/slint-dashboard.default": "7a99467a65776f7ba2e327746baedee488bb087b3496f8d1bec3fa9b4e4ae7cc",
+    "board/slint-dashboard.service": "c42dc43e9ffe6c6617937252996c9d3d006a432a6bc7961e5b8adaf19f7b3a82",
+    "board/slint-wait-display.sh": "d4205bc7731ac6947b273381d38ab07ddcc6ee008f93d8d3d26d3d697f0c76ec",
+    "board/test-display-gpu.py": "a9017db6ad4df404c5110655a64dbcc6d806db8709fdf0d3aaeace3cbc844d75",
+    "linux/configs/display.config": "32b79dd3f701e9f1aa026de049d0bac65f0120afbfe2998c64e4ee88199c6869",
+    "linux/drivers/Kbuild": "8c48227784c5b3e969b0119a167715174d3252395f1036a190a5fb41de8db2ed",
+    "linux/drivers/panel-alientek-md0550.c": "329acf3796f55070efd1145ad549871d870554e40ac54681918d2bf2b7342932",
+    "linux/dts/Kbuild": "015411ec58bf125f2bd999b0a6db697fb94c3e1df0226df383ed9f0e6d238c51",
+    "linux/dts/bindings/display/panel/alientek,atk-md0550-1080p.yaml": "db4b0091eb368200d5f50d06ea2848b9afd966615356959768eab7b92b32f5d1",
+    "linux/dts/rk3588-atk-dlrk3588-hdmi.dtsi": "e0d400595a04a5e8e07844cfe1e2f1484eb04aaef0f236301267c56deaa1e896",
+    "linux/dts/rk3588-atk-dlrk3588-mipi-1080p.dts": "4c65f54bd8310a8aa68f0480cbccb4abf5d301563f3398ac0c149cdfda2f159f",
+    "linux/dts/rk3588-atk-dlrk3588.dts": "67aba372684ae4870e97e89ac1a7f953108196c45b13c749fdcd2f991c4ff838",
+    "linux/patches/0001-rust-extend-miscdevice-kiocb-and-clk-for-the-serial-.patch": "bc6e405b0c37426d008f72c3d31aefadb3f3dbc234e9801a2886e5abbac62b21",
+    "linux/patches/0002-rust-clk-let-an-exclusive-clock-holder-retune-its-ra.patch": "c2d630a417873ed5a85cc661ba6bc3db7670dbee42bacc77de546230e1312002",
+    "linux/patches/0003-dmaengine-pl330-synchronize-completion-callbacks.patch": "c118aff1e58c671d050e1f1fd9d3567d3c1bef1c32bdb1b64dc08a930704a2ba",
+    "linux/patches/0004-rust-add-dmaengine-module-and-DMA-barriers-for-seria.patch": "db8dfac275340b5d2679588dc4765be3230f00104d360da0cf91d1bf5961b5bb",
+    "linux/patches/0005-drm-bridge-dw-mipi-dsi2-validate-and-drain-read-resp.patch": "f3b5cdc70e5eb7c917ebb3f10265e8e7ca7367d7adbd5c999e9c85da5f4a5eed",
+    "linux/patches/0006-drm-rockchip-report-GEM-DMA-addresses-in-debug-outpu.patch": "464622e6c128df44ea49b7a1b9fd1e9a484a5b66320a8128489777daa44f84a1",
+    "linux/patches/0007-drm-bridge-dw-mipi-dsi2-wait-for-the-requested-opera.patch": "6eb89ce80e0d863e8c90b30fbf56dd69f18b9769e6d86c500711ee4a91800e4d",
+    "linux/patches/0008-drm-bridge-dw-mipi-dsi2-release-panel-bridge-resourc.patch": "799ac35a5f6500223ab0ffc1f8ca7332cebcc2c856bdadf653d3a2f3bb8bb095",
+    "linux/patches/0009-drm-rockchip-apply-the-RK3588-prescan-sync-width-min.patch": "e0fbc49af2d51fee0d2163ce6077258451f37c09fbcbe01490e0c80c63d05ad8",
+    "linux/patches/0010-drm-bridge-dw-mipi-dsi2-quiesce-video-while-receivin.patch": "d2ac171b4e3215518c0f87e37b2246a100d69ded54aaaf645f83018afa23da85",
+    "manifest.env": "a2548918d1f6435b21ddf5d3d156ceaa4e3e3a02e200acdea6d0c71c893dc926",
+    "scripts/build-display.sh": "5c7878e3bae78aa94feed8f15547a7b9b5dcaadfa063d9c4d1c800bc8f6af58d",
+    "scripts/build-linux.sh": "01c6001b0f365d26a568fa15bf0d8ea0bb8cdec45545c5e083a9b77556729720",
+    "scripts/check-display.sh": "f30307f7ef090b4810df88eeb776ab4e2474cf78c3a6ddc388f0211914c6ad8c",
+    "scripts/deploy-board.sh": "ca430cc3361d7afd458114d6052c694f25fb6fc7ab3306d761dd81dc59213247",
+    "scripts/deploy-display.sh": "415766198649085c3e7c1332b006e2c9861b62c53ebcf9019a848c8137c41a93",
+    "scripts/detect-display.sh": "e4d7951113e4737815c887c81c7a28dd04abaa0c488ef4db0976e761912c04af",
+    "scripts/display-linker.sh": "fcb44fca7cc82845667d2c716cfc29993cf4971d943312c13f90ebe98f069164",
+    "scripts/display-sysroot.sh": "5ea1c32f07933060b7f9b2154492b9a604ffe034a5582e07f0f576c663df5981",
+    "scripts/lib.sh": "592396059a5743fec2be405d2ea885724506db9c58c051904169c5fdb10fef1f",
+    "scripts/package.sh": "86d1b2ea820c6b6e4d7b81840a45be458e11ab8462cc6a704d8b424291547aca",
+    "scripts/test-display.sh": "d1eb0eab79cba41af7af9edf832c986ab45b50d60b7b0afd3b6af9c305a1e6a6",
+    "tests/test-display-boot.py": "0f1d770193bbf120f02b238e70765718188cc589caad53e1274523023414fc6b",
+    "tests/test-panel-id.py": "ab57db64ec23b2a5908e962ef9539763b64b0da30e7c37036df875fe17fb1220"
+  },
+  "vendor": {
+    "crate": "i-slint-backend-linuxkms",
+    "version": "1.17.1",
+    "archive_sha256": "68e76f2b13846ca54bba6b8eb3b5454b26879ad987396d0a2d8abedc31a6c469",
+    "patch": "app/slint-dashboard/patches/0001-gbm-negotiate-scanout-modifiers.patch",
+    "patched_archive_matches_vendor": true,
+    "file_count": 27
+  },
+  "rollback": {
+    "default_boot_label": "bsp",
+    "bsp_backup": "/var/backups/atk-dlrk3588-bsp/20260915-205441",
+    "fallback_label": "rust",
+    "caveat": "Entries using the same kernel release share installed modules; restore matching Image, DTB and modules for a full rollback."
+  },
+  "bsp_package": {
+    "path": "build/deploy/atk-dlrk3588-bsp-7.2.5-atk-dlrk3588+.tar.gz",
+    "bytes": 38017077,
+    "sha256": "6cc7729cec13f643de4ffdfa6f9caad82bf7b46bf30665a468a19d57d1c422df",
+    "contains_slint_application": false
+  }
+}

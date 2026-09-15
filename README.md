@@ -31,8 +31,8 @@ atk-dlrk3588-bsp/
 ├── Makefile                # make fetch / linux / uboot / app / check / qemu / package / deploy
 ├── scripts/                # 各目标对应的脚本，可单独运行
 ├── linux/
-│   ├── drivers/            # 树外 Rust 模块：rust_dw_uart、rust_chardev（Kbuild M=）
-│   ├── dts/                # 树外设备树 rk3588-atk-dlrk3588.dts（Kbuild M=）
+│   ├── drivers/            # 树外模块：Rust UART/chardev、HX8399 panel（Kbuild M=）
+│   ├── dts/                # 基础与 J23 MIPI 设备树、HDMI 配置、panel binding
 │   ├── configs/            # 在 arm64 defconfig 上合并的配置片段
 │   ├── overlay/            # 复制进内核树的新增文件：rust/kernel/serial*.rs、dmaengine.rs、C helpers
 │   ├── patches/            # 对既有上游文件的最小改动（git am）
@@ -41,7 +41,8 @@ atk-dlrk3588-bsp/
 │   ├── overlay/            # 板级设备树、board/rockchip/atk_dlrk3588、defconfig、板级头文件
 │   ├── patches/            # 仅注册 TARGET_ATK_DLRK3588 的 Kconfig 补丁
 │   └── ddrbin_param.txt    # 板级 DDR 参数（LPDDR4/LPDDR4X 上限 1560 MHz）
-├── app/rs485-test/         # 应用与测试：rs485-test、QEMU init、宿主机单元/PTY 测试
+├── app/rs485-test/          # 串口应用、QEMU init、宿主机单元/PTY 测试
+├── app/slint-dashboard/     # Slint GPU 界面、后端补丁、使用/设计/验收文档
 ├── board/                  # 板上运行文件：UART3 绑定脚本、systemd 服务、udev 规则、安装脚本
 └── tests/                  # QEMU 模块生命周期测试、TAP 入口、板上冒烟测试
 ```
@@ -51,6 +52,8 @@ atk-dlrk3588-bsp/
 | 内容 | 方式 | 原因 |
 | --- | --- | --- |
 | `rust_dw_uart`、`rust_chardev` 模块 | `linux/drivers/`，`make M=` 树外编译 | 只使用 `kernel` crate API，不需要树内 Kconfig |
+| HX8399 DRM panel | `linux/drivers/panel-alientek-md0550.c`，树外模块 | 使用 DRM/MIPI DSI、GPIO descriptor、regulator 标准 API |
+| 显示核心修复 | `linux/patches/0005`—`0010`，见[补丁索引](linux/patches/README.md) | 修改 DSI2/VOP2/GEM 既有驱动 |
 | 板级设备树 | `linux/dts/`，`make M=` 用内核自带 dtc 编译 | 仅 `#include <arm64/rockchip/rk3588.dtsi>` 与树内写法不同 |
 | `rust/kernel/serial.rs`、`serial/dma.rs`、`dmaengine.rs`、C helpers | `linux/overlay/` 原样复制进内核树 | 是 `kernel` crate 的一部分，必须随内核编译，但都是新增文件 |
 | `lib.rs`、`miscdevice.rs`、`clk.rs`、`kiocb.rs`、`barrier.rs`、`bindings_helper.h`、`helpers.c`、`pl330.c` 的改动 | `linux/patches/` | 修改上游既有文件，只能以补丁形式存在 |
@@ -80,10 +83,11 @@ make package                     # 生成 build/deploy/ 部署包
 产物：
 
 - 内核 `build/linux/arch/arm64/boot/Image`，版本 `7.2.5-atk-dlrk3588+`；
-- 设备树 `build/linux-dts/rk3588-atk-dlrk3588.dtb`；
-- 模块 `build/linux-modules/rust_dw_uart.ko`、`rust_chardev.ko`，树内模块随 `make package` 一并安装；
+- 基础设备树 `build/linux-dts/rk3588-atk-dlrk3588.dtb`，J23 profile 为同目录下的 `rk3588-atk-dlrk3588-mipi-1080p.dtb`；
+- 模块 `build/linux-modules/rust_dw_uart.ko`、`rust_chardev.ko`、`panel-alientek-md0550.ko`，树内模块随 `make package` 一并安装；
 - U-Boot `build/u-boot/u-boot-rockchip.bin`（idbloader + u-boot.itb，写入扇区 64）；
-- 应用 `build/app/aarch64-unknown-linux-gnu/release/rs485-test`。
+- 串口应用 `build/app/aarch64-unknown-linux-gnu/release/rs485-test`；
+- Slint 应用 `build/slint/aarch64-unknown-linux-gnu/release/slint-dashboard`（单独 `make display`）。
 
 `make linux` 内部执行的树外编译等价于：
 
@@ -95,6 +99,24 @@ make -C external/linux O=build/linux ARCH=arm64 LLVM=-21 \
      BINDGEN=$PWD/scripts/bindgen.sh \
      M=$PWD/linux/dts MO=$PWD/build/linux-dts
 ```
+
+## Slint GPU 显示
+
+J23 上的 5.5 寸 1080×1920 MIPI 屏使用主线 Panthor/Mesa 和 Slint OpenGL ES
+渲染，应用以普通用户运行。新增面板模块、DSI/背光/触摸/ADC/GPU 设备树配置，
+以及 `make display`、`make display-detect`、`make deploy-display`、
+`make test-display DISPLAY_TEST_ARGS=--touch` 入口。
+
+实际点亮的关键配置是 J23 DSI 系统时钟固定为 **CPLL / 375 MHz**；像素时钟为
+118.8 MHz、刷新约 53.84 Hz。已完成实屏确认和部署后重启验证。
+
+- [使用手册](app/slint-dashboard/README.md)：准备、构建、部署、服务、测试和回滚。
+- [实现说明](app/slint-dashboard/ARCHITECTURE.md)：硬件/时钟、GPU/AFBC、生命周期和文件职责。
+- [实施与验收](app/slint-dashboard/PLAN.md)：当前完成范围和证据入口。
+- [调试档案](app/slint-dashboard/BRINGUP.md)：黑屏定位、原厂 GPU 对照与实验结论。
+
+Slint 应用单独采用 GPL-3.0-only；`make package/deploy` 安装 BSP，
+`make display/deploy-display` 单独构建/安装 Slint。
 
 ## Ubuntu Base
 
@@ -122,8 +144,9 @@ SHA-256，备份原 `/boot/extlinux` 与旧文件到 `/var/backups/atk-dlrk3588-
 安装 `/lib/modules/<release>/`、`/boot/atk-dlrk3588-bsp/{Image,dtb}`、
 `/usr/local/bin/rs485-test`、`bind-uart3.sh`、udev 规则和 `rust-uart3.service`，
 再在 extlinux 菜单新增并默认选择 `bsp` 启动项（`--no-default` 只新增不切换）。
-原有启动项保留，可在 U-Boot 菜单回退。`/boot` 只有 128 MiB，放不下第三个
-Image 时脚本会列出现有目录，用 `--boot-dir <目录>` 指定替换其中一个。
+原有启动项保留，可在 U-Boot 菜单回退。`/boot` 空间有限（用 `df -h /boot` 核对），替换不同 Image
+需要新文件的暂存空间；不足时先备份并退役不用的旧启动项。Image 完全相同时跳过
+复制，因此可在空间有限时更新模块和 DTB。
 
 重启后在板上验证：
 
@@ -172,6 +195,9 @@ SHA-256；修改参数后需同步更新 `manifest.env` 中的 `BOARD_DDR_SHA256
 
 ## 验证记录
 
+以下 2026-09-13 数据保留为原 BSP 移植基线；2026-09-15 的显示实机部署、
+重启和复核见 [Slint 验证索引](app/slint-dashboard/validation/README.md)。
+
 2026-09-13 在本工程内以主线源码完成：
 
 - `make fetch`：kernel.org `v7.2.5`、GitHub `v2026.10-rc4`、rkbin 三个文件校验通过，
@@ -192,7 +218,7 @@ SHA-256；修改参数后需同步更新 `manifest.env` 中的 `BOARD_DDR_SHA256
 - `make package`：部署包 133 MiB，1680 个文件的 SHA-256 清单校验通过；`board/install.sh`
   的 extlinux 编辑逻辑用样例配置验证了新增、替换与首次安装三种路径。
 
-本次开发板处于断电状态，`make deploy`/`make flash-uboot` 未在实机执行；产物与此前实测
+2026-09-13 该轮记录时开发板处于断电状态，尚未执行该轮部署/刷写；产物与此前实测
 通过的 fork 构建同源同配置。树外模块会给内核加上 `O` taint 标志（`/proc/sys/kernel/tainted`
 为 4096），这是树外编译的固有结果，不表示错误。
 
@@ -208,4 +234,5 @@ SHA-256；修改参数后需同步更新 `manifest.env` 中的 `BOARD_DDR_SHA256
 主线上的树外形态。板级实测记录（DMA 回环、RS485 双向、取消/解绑、PIO 对照）保存在
 原工作区的 `analysis/` 目录。
 
-许可证：GPL-2.0（设备树为 GPL-2.0+ OR MIT），见 [LICENSE](LICENSE)。
+内核与 BSP 脚本许可证为 GPL-2.0（设备树为 GPL-2.0+ OR MIT），见 [LICENSE](LICENSE)。
+Slint 应用单独采用 GPL-3.0-only，见 [应用许可证](app/slint-dashboard/LICENSE)。

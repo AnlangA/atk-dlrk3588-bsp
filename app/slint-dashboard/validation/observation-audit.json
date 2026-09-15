@@ -1,0 +1,54 @@
+{
+  "recorded_at": "2026-09-14T17:19:24.834354+00:00",
+  "board_boot_id": "495af65f-fbf0-4cbc-b677-ecbdaddebb42",
+  "host_video_devices": [],
+  "board_video_devices": [
+    {
+      "device": "video3",
+      "sysfs": "/sys/devices/platform/fdba0000.video-codec/video4linux/video3",
+      "name": "rockchip,rk3588-vepu121-enc"
+    },
+    {
+      "device": "video1",
+      "sysfs": "/sys/devices/platform/fdb80000.rga/video4linux/video1",
+      "name": "rockchip-rga"
+    },
+    {
+      "device": "video4",
+      "sysfs": "/sys/devices/platform/fdc70000.video-codec/video4linux/video4",
+      "name": "rockchip,rk3588-av1-vpu-dec"
+    },
+    {
+      "device": "video2",
+      "sysfs": "/sys/devices/platform/fdb50000.video-codec/video4linux/video2",
+      "name": "rockchip,rk3568-vpu-dec"
+    },
+    {
+      "device": "video0",
+      "sysfs": "/sys/devices/platform/fdb60000.rga/video4linux/video0",
+      "name": "rockchip-rga"
+    }
+  ],
+  "board_iio_devices": [
+    {
+      "device": "iio:device0",
+      "name": "fec10000.adc"
+    }
+  ],
+  "backlight": [
+    {
+      "device": "backlight",
+      "sysfs": "/sys/devices/platform/backlight/backlight/backlight",
+      "brightness": "9",
+      "actual_brightness": "9",
+      "bl_power": "0",
+      "max_brightness": "9"
+    }
+  ],
+  "pwm": "0: platform/fd8b0010.pwm, npwm: 1\n pwm-0   (backlight           ): requested\n  requested configuration:  enabled, 25000/25000 ns, normal polarity\n  actual configuration:     enabled, 25000/25000 ns, normal polarity\n",
+  "available_optical_capture_channel_found": false,
+  "live_display_state": "ActiveState=active\nMainPID=826\nGPU_FRAME: 300\nGPU_FRAME: 360\nGPU_FRAME: 420\nGPU_FRAME: 480\ndisplay-id: 83 99 0c\npower: 9d\npixel-format: 77\nself-diagnostic: c0\nstatus: 80 73 04 00\nscanline-1: 01 f7\nscanline-2: 04 78\ndsi-errors-1: 00\ndsi-errors-2: 00\n",
+  "remaining_requirement": "Verify that the physical glass displays the GPU-rendered image.",
+  "limitation": "Enumerated video nodes are RGA/codecs, not optical capture devices; no camera or light measurement channel is exposed. GPU and DCS readback cannot prove optical output.",
+  "goal_complete": false
+}

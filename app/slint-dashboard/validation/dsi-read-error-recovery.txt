@@ -1,0 +1,14 @@
+[38756.801015] dw-mipi-dsi2 fde20000.dsi: failed to create packet: -22
+[38756.801571] SINK_READ_FAILURE ret=-22 before=3 after=3
+display-id: 83 99 0c
+power: 9d
+pixel-format: 77
+self-diagnostic: c0
+status: 80 73 04 00
+red: 00
+green: 00
+blue: 00
+scanline-1: 00 96
+scanline-2: 04 42
+dsi-errors-1: 00
+dsi-errors-2: 00

@@ -1,0 +1,27 @@
+ae940eaa-127d-4b09-90aa-74ed12f9fb49
+4096
+display-id: 83 99 0c
+power: 9d
+pixel-format: 77
+self-diagnostic: c0
+status: 80 73 04 01
+red: 00
+green: 00
+blue: 00
+scanline-1: 02 29
+scanline-2: 04 a2
+dsi-errors-1: 02
+dsi-errors-2: 00
+4096
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=3
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=4
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=2
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=2
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1
+Sep 15 09:39:34 atk-rk3588 kernel: dw-mipi-dsi2 fde20000.dsi: DSI_RX header=0x0000041c type=0x1c requested=1

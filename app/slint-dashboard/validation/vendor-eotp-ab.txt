@@ -1,0 +1,14 @@
+DSI_GENERAL_CFG: 0x3 -> 0x2
+DSI_GENERAL_CFG: 0x2 -> 0x3
+[  180.922974] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK status: 80 73 04 01
+[  180.958312] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-1: 80
+[  180.964387] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-2: 6a
+[  181.059047] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK status: 80 73 04 01
+[  181.095222] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-1: 80
+[  181.101326] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-2: 6c
+[  181.224954] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK status: 80 73 04 01
+[  181.260572] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-1: 80
+[  181.266185] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-2: 00
+[  181.362325] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK status: 80 73 04 00
+[  181.397693] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-1: 00
+[  181.402789] panel-simple-dsi fde20000.dsi.0: PANEL_READBACK dsi-errors-2: 00

@@ -1,0 +1,111 @@
+{
+  "result": "PASS",
+  "samples": [
+    {
+      "color": "black",
+      "gpu_rgba": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "panel": {
+        "id": "83990c",
+        "status": "80730400",
+        "dsi_errors": [
+          0,
+          0
+        ],
+        "scanlines": [
+          538,
+          1179
+        ]
+      }
+    },
+    {
+      "color": "red",
+      "gpu_rgba": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "panel": {
+        "id": "83990c",
+        "status": "80730400",
+        "dsi_errors": [
+          0,
+          0
+        ],
+        "scanlines": [
+          1632,
+          320
+        ]
+      }
+    },
+    {
+      "color": "green",
+      "gpu_rgba": [
+        0,
+        255,
+        0,
+        255
+      ],
+      "panel": {
+        "id": "83990c",
+        "status": "80730400",
+        "dsi_errors": [
+          0,
+          0
+        ],
+        "scanlines": [
+          784,
+          1425
+        ]
+      }
+    },
+    {
+      "color": "blue",
+      "gpu_rgba": [
+        0,
+        0,
+        255,
+        255
+      ],
+      "panel": {
+        "id": "83990c",
+        "status": "80730400",
+        "dsi_errors": [
+          0,
+          0
+        ],
+        "scanlines": [
+          286,
+          927
+        ]
+      }
+    },
+    {
+      "color": "white",
+      "gpu_rgba": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "panel": {
+        "id": "83990c",
+        "status": "80730400",
+        "dsi_errors": [
+          0,
+          0
+        ],
+        "scanlines": [
+          15,
+          656
+        ]
+      }
+    }
+  ],
+  "optical_observation": false
+}

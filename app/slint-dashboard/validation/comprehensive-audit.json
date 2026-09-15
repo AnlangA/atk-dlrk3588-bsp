@@ -1,0 +1,92 @@
+{
+  "overall_goal": "IMPLEMENTED",
+  "user_report": "现在界面有ui (2026-09-15, with DSI system clock on CPLL / 375 MHz)",
+  "vop_writeback": {
+    "mainline": "Slint UI captured from VP3",
+    "vendor": "Slint UI captured from VP3",
+    "capture_size": [
+      1072,
+      960
+    ],
+    "source_size": [
+      1080,
+      1920
+    ]
+  },
+  "fixed_issues": [
+    "Mode enum incorrectly tested as bitmask",
+    "Managed panel bridge double removal",
+    "Repeated DSI detach during host removal",
+    "RK3588 prescan sync interval now uses the vendor minimum of eight pixels",
+    "J23 DSI system clock explicitly selects CPLL / 375 MHz",
+    "Quiesce DSI video during BTA reads and restore video after success or error",
+    "Allow mode transitions to cross a video frame boundary"
+  ],
+  "rgb_readback": [
+    0,
+    0,
+    0
+  ],
+  "rx_crc_test": "CRC enabled; reported error counts stayed zero",
+  "visual_output_verified": true,
+  "unresolved": null,
+  "internal_scan_test": "Scanline advances even with DSI host in command mode; advancing scanline does not prove video pixel reception",
+  "image_backup": {
+    "backup": "/var/backups/slint-bsp-image.6eguypqn",
+    "old_image_sha256": "6d6a0a831bcf3856e2e8df411ccab0f973d5185b8045f44fa995cb1dd830482e",
+    "fallback_image_sha256": "3e078fecf1d9c1c2843a800a187783e6c23ad2e852eab45c226ef02a8f22ea3b",
+    "fallback_dtb_sha256": "17f3b31c2dea0e8bbf8882dc4a7fc64caccfaffc37b41849055cc628f94eee5a"
+  },
+  "production_device_check": {
+    "result": "PASS",
+    "renderer": "Mali-G610 MC4 (Panfrost)",
+    "scope": "gpu_kms_panel_control",
+    "visible_image_verified": false,
+    "gpu_execution_ns": 5755167,
+    "screenshot": {
+      "width": 1080,
+      "height": 1920,
+      "bytes": 101372
+    },
+    "synthetic_touch": true,
+    "panel": {
+      "id": "83990c",
+      "status": "80730400",
+      "dsi_errors": [
+        0,
+        0
+      ],
+      "scanlines": [
+        1954,
+        80
+      ],
+      "host_mode": 3,
+      "rgb_readback_raw": "000000"
+    },
+    "dsi_clock": {
+      "parent": "cpll",
+      "rate_hz": 375000000
+    },
+    "prescan_hsync": 8,
+    "pid": 340,
+    "kernel_taint": 4096,
+    "boot_id": "73928060-bd62-47cb-9d6a-175e21e276fc",
+    "service_restarts": 0,
+    "temporary_clock_module_loaded": false
+  },
+  "production_image_sha256": "7f5b1e165c730e404725261c585426a2e3fe3a60c1950059cdf1bb8b7ef6fad8",
+  "visual_output_verification_source": "User report of the physical J23 panel; not a GPU or VOP screenshot",
+  "dsi_clock": {
+    "parent": "cpll",
+    "rate_hz": 375000000,
+    "configuration": "standard assigned-clock properties in the J23 DTB"
+  },
+  "production_dtb_sha256": "60da4fd6ca83050f1d1b6a925bd44962e9e13ec30d01cb5fa1bf1d5b4068c182",
+  "latest_backup": "/var/backups/atk-dlrk3588-bsp/20260915-205441",
+  "reboot_verified": true,
+  "diagnostic_limits": [
+    "DCS status reads briefly pause DSI video and may skip frames.",
+    "Raw RGB channel reads remain zero even with user-confirmed visible UI; they are not used as an optical test.",
+    "SPLL physical frequency was not measured; the applied fix selects the working CRU-managed CPLL configuration."
+  ]
+}
