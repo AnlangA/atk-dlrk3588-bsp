@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { Button } from "std-widgets.slint";
+
+component Metric inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    background: #17253a;
+    border-radius: 12px;
+    VerticalLayout {
+        padding: 20px;
+        spacing: 12px;
+        Text { text: root.label; color: #9eafc6; font-size: 18px; }
+        Text { text: root.value; color: #f0f5ff; font-size: 30px; font-weight: 600; }
+    }
+}
+
+export component Dashboard inherits Window {
+    title: "ATK-DLRK3588";
+    preferred-width: 1024px;
+    preferred-height: 600px;
+    background: #0c1524;
+    default-font-family: "DejaVu Sans";
+    default-font-size: 18px;
+    in property <string> kernel-version: "Linux";
+    in property <string> uptime: "--";
+    in property <string> temperature: "--";
+    in property <string> memory: "--";
+    in property <string> heartbeat: "Starting";
+    in property <string> gpu-info: "Mali GPU / OpenGL ES";
+    in-out property <bool> paused: false;
+    in-out property <int> count: 0;
+    in property <int> test-pattern: -1;
+    callback reset-counter();
+    callback action(string);
+
+    VerticalLayout {
+        padding: 32px;
+        spacing: 22px;
+        HorizontalLayout {
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "ATK-DLRK3588"; color: #f0f5ff; font-size: 32px; font-weight: 700; }
+                Text { text: "Slint  /  System overview"; color: #9eafc6; }
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Text { text: root.paused ? "PAUSED" : "LIVE"; color: root.paused ? #ffcc80 : #64e4bb; vertical-alignment: center; }
+        }
+        Rectangle {
+            min-height: root.width < 850px ? 340px : 128px;
+            if root.width >= 850px: HorizontalLayout {
+                spacing: 16px;
+                Metric { label: "UPTIME"; value: root.uptime; }
+                Metric { label: "SOC TEMPERATURE"; value: root.temperature; }
+                Metric { label: "MEMORY USED"; value: root.memory; }
+            }
+            if root.width < 850px: VerticalLayout {
+                spacing: 16px;
+                Metric { label: "UPTIME"; value: root.uptime; }
+                Metric { label: "SOC TEMPERATURE"; value: root.temperature; }
+                Metric { label: "MEMORY USED"; value: root.memory; }
+            }
+        }
+        Rectangle {
+            background: #17253a;
+            border-radius: 12px;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+                Text { text: root.kernel-version; color: #f0f5ff; overflow: elide; }
+                Text { text: root.gpu-info; color: #9eafc6; wrap: word-wrap; }
+                Text { text: root.heartbeat; color: #64e4bb; }
+            }
+        }
+        HorizontalLayout {
+            spacing: 14px;
+            Button { min-height: 52px; text: root.paused ? "Resume" : "Pause"; clicked => { root.paused = !root.paused; root.action("pause"); } }
+            Button { min-height: 52px; text: "Count: " + root.count; clicked => { root.count = mod(root.count + 1, 1000000); root.action("count"); } }
+            Button { min-height: 52px; text: "Reset"; clicked => { root.reset-counter(); } }
+        }
+        Text { text: "Updates every second  ·  Touch / keyboard input"; color: #9eafc6; font-size: 14px; }
+    }
+
+    if root.test-pattern >= 0: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: root.test-pattern == 0 ? #000000 :
+                    root.test-pattern == 1 ? #ff0000 :
+                    root.test-pattern == 2 ? #00ff00 :
+                    root.test-pattern == 3 ? #0000ff : #ffffff;
+    }
+}

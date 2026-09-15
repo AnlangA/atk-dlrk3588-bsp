@@ -36,6 +36,13 @@ ssh "${ssh_opts[@]}" "$BOARD_HOST" "printf '%s  %s\n' '$sum' $remote_dir/payload
 	rm -rf $remote_dir/payload && tar -xzf $remote_dir/payload.tar.gz -C $remote_dir"
 
 log "installing on the board"
-# shellcheck disable=SC2029  # the arguments are meant to expand on the client side
-ssh -t "${ssh_opts[@]}" "$BOARD_HOST" "$sudo_cmd $remote_dir/payload/install.sh $*"
+install_args=
+if (( $# )); then printf -v install_args ' %q' "$@"; fi
+if [[ -n ${BOARD_SUDO_PASSWORD_FILE:-} ]]; then
+	# shellcheck disable=SC2029  # arguments are shell-escaped above
+	ssh "${ssh_opts[@]}" "$BOARD_HOST" "$sudo_cmd -S -p '' $remote_dir/payload/install.sh$install_args" < "$BOARD_SUDO_PASSWORD_FILE"
+else
+	# shellcheck disable=SC2029  # arguments are shell-escaped above
+	ssh -t "${ssh_opts[@]}" "$BOARD_HOST" "$sudo_cmd $remote_dir/payload/install.sh$install_args"
+fi
 log "done; after a reboot run: $sudo_cmd $remote_dir/payload/board-smoke.sh $release"

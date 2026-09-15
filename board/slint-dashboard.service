@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: GPL-2.0-only
+[Unit]
+Description=ATK-DLRK3588 Slint display
+Requires=seatd.service
+After=seatd.service systemd-udev-trigger.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+# A disconnected monitor can be connected later; keep retrying at a low rate.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=slint-display
+Group=slint-display
+# Ubuntu's seatd socket is owned by root:video. Input fds come from libseat.
+SupplementaryGroups=video render
+Environment=LIBSEAT_BACKEND=seatd
+Environment=SLINT_BACKEND=linuxkms-femtovg
+Environment=XDG_CACHE_HOME=/var/cache/slint-dashboard
+EnvironmentFile=-/etc/default/slint-dashboard
+CacheDirectory=slint-dashboard
+RuntimeDirectory=slint-dashboard
+ExecStartPre=/usr/local/libexec/slint-wait-display
+ExecStart=/usr/local/bin/slint-dashboard
+TimeoutStartSec=infinity
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

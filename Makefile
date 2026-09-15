@@ -3,6 +3,7 @@
 # wrapper around a script in scripts/; run the scripts directly for options.
 
 .PHONY: all fetch prepare linux uboot app check qemu package deploy deploy-app \
+        display display-sysroot display-detect check-display deploy-display test-display \
         flash-uboot export-patches clean distclean help
 
 all: linux uboot app
@@ -22,6 +23,24 @@ uboot:
 
 app:
 	scripts/build-app.sh
+
+display:
+	scripts/build-display.sh
+
+display-sysroot:
+	scripts/display-sysroot.sh
+
+display-detect:
+	scripts/detect-display.sh
+
+check-display:
+	scripts/check-display.sh
+
+deploy-display:
+	scripts/deploy-display.sh $(DISPLAY_DEPLOY_ARGS)
+
+test-display:
+	scripts/test-display.sh $(DISPLAY_TEST_ARGS)
 
 check:
 	scripts/check.sh
@@ -57,6 +76,12 @@ help:
 	@echo 'make linux          patch + configure + build kernel, out-of-tree modules and DTB'
 	@echo 'make uboot          patch + build U-Boot with the derived DDR blob and BL31'
 	@echo 'make app            cross-build rs485-test and driver-test-init (no kernel needed)'
+	@echo 'make display        cross-build the Slint DRM/KMS dashboard'
+	@echo 'make display-sysroot copy target development libraries from BOARD_HOST'
+	@echo 'make display-detect read the MIPI panel ID resistor via board IIO'
+	@echo 'make check-display  native Slint formatting, Clippy and tests'
+	@echo 'make deploy-display install/start the non-root Slint service over SSH'
+	@echo 'make test-display   verify Mali execution, AFBC scanout and GPU capture (DISPLAY_TEST_ARGS=--touch to inject input)'
 	@echo 'make check          shell/python syntax, rustfmt, clippy and host tests'
 	@echo 'make qemu           run the module lifecycle tests in QEMU'
 	@echo 'make package        assemble build/deploy/ payload and tarball'

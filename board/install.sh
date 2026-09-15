@@ -54,15 +54,19 @@ fi
 
 target=/boot/$boot_dir
 need=$(du -sbc "$payload/boot/Image" "$payload/boot/rk3588-atk-dlrk3588.dtb" | tail -1 | cut -f1)
-free=$(df --output=avail -B1 /boot | tail -1)
-if [[ -d $target ]]; then
-	free=$((free + $(du -sb "$target" | cut -f1)))
+replace_image=1
+if cmp -s "$payload/boot/Image" "$target/Image"; then
+	replace_image=0
+	need=$((need - $(stat -c %s "$payload/boot/Image")))
 fi
+free=$(df --output=avail -B1 /boot | tail -1)
+# Image.new must coexist with the previous Image until verification succeeds.
+# Counting the old image as free space would defeat this atomic replacement.
 if (( free < need + 4194304 )); then
 	echo "Not enough space in /boot for $target (need $need bytes, $free available)." >&2
 	echo 'Existing kernel directories:' >&2
 	find /boot -mindepth 1 -maxdepth 1 -type d ! -name extlinux ! -name lost+found -exec du -sh {} + >&2 || true
-	echo 'Pass --boot-dir <existing directory> to replace one of them.' >&2
+	echo 'Back up and retire an unused boot entry first; Image.new needs temporary space.' >&2
 	exit 1
 fi
 
@@ -109,10 +113,12 @@ systemctl enable rust-uart3.service
 command -v fuser >/dev/null || echo 'Warning: bind-uart3.sh needs fuser; install the psmisc package.' >&2
 
 mkdir -p "$target"
-install -m 0644 "$payload/boot/Image" "$target/Image.new"
+if (( replace_image )); then
+	install -m 0644 "$payload/boot/Image" "$target/Image.new"
+	cmp "$payload/boot/Image" "$target/Image.new"
+	mv "$target/Image.new" "$target/Image"
+fi
 install -m 0644 "$payload/boot/rk3588-atk-dlrk3588.dtb" "$target/rk3588-atk-dlrk3588.dtb.new"
-cmp "$payload/boot/Image" "$target/Image.new"
-mv "$target/Image.new" "$target/Image"
 mv "$target/rk3588-atk-dlrk3588.dtb.new" "$target/rk3588-atk-dlrk3588.dtb"
 
 conf=/boot/extlinux/extlinux.conf

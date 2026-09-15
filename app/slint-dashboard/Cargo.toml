@@ -1,0 +1,30 @@
+[package]
+name = "slint-dashboard"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "GPL-3.0-only"
+description = "Direct DRM/KMS status display for the ATK-DLRK3588"
+
+[dependencies]
+slint = { version = "=1.17.1", default-features = false, features = ["std", "compat-1-2", "backend-linuxkms", "renderer-femtovg"] }
+signal-hook = "0.3"
+png = "0.18"
+
+[build-dependencies]
+slint-build = "=1.17.1"
+
+[dev-dependencies]
+# Only unit tests use a headless software window. Production is GPU-only.
+slint = { version = "=1.17.1", default-features = false, features = ["renderer-software"] }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[profile.release]
+lto = "thin"
+strip = "debuginfo"
+overflow-checks = true
+
+[patch.crates-io]
+i-slint-backend-linuxkms = { path = "vendor/i-slint-backend-linuxkms" }

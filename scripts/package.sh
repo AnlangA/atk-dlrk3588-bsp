@@ -7,7 +7,11 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
 need_cmd make tar sha256sum
 
 image=$LINUX_OUT/arch/arm64/boot/Image
-dtb=$LINUX_DTS_OUT/rk3588-atk-dlrk3588.dtb
+board_dtb=${BOARD_DTB:-rk3588-atk-dlrk3588.dtb}
+if [[ $board_dtb == auto ]]; then
+	board_dtb=$("$BSP_ROOT/scripts/detect-display.sh" --dtb)
+fi
+dtb=$LINUX_DTS_OUT/$board_dtb
 app=$APP_OUT/aarch64-unknown-linux-gnu/release/rs485-test
 for file in "$image" "$dtb" "$app" "$LINUX_MODULES_OUT/rust_dw_uart.ko" "$LINUX_MODULES_OUT/rust_chardev.ko"; do
 	[[ -f $file ]] || die "missing $file; run make linux app first"

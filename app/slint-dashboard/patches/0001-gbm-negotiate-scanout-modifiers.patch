@@ -1,0 +1,210 @@
+--- a/lib.rs
++++ b/lib.rs
+@@ -17,6 +17,9 @@
+ 
+ #[cfg(all(target_os = "linux", feature = "drm"))]
+ mod drmoutput;
++
++#[cfg(all(target_os = "linux", feature = "gbm"))]
++mod drmformats;
+ 
+ #[cfg(target_os = "linux")]
+ mod display;
+--- /dev/null
++++ b/drmformats.rs
+@@ -0,0 +1,77 @@
++// SPDX-License-Identifier: GPL-3.0-only
++//! Parse the kernel's native-endian DRM IN_FORMATS blob without unaligned casts.
++
++pub(crate) fn modifiers_for_format(blob: &[u8], format: u32) -> Option<Vec<u64>> {
++    let u32_at = |offset: usize| {
++        Some(u32::from_ne_bytes(
++            blob.get(offset..offset.checked_add(4)?)?.try_into().ok()?,
++        ))
++    };
++    let u64_at = |offset: usize| {
++        Some(u64::from_ne_bytes(
++            blob.get(offset..offset.checked_add(8)?)?.try_into().ok()?,
++        ))
++    };
++    if u32_at(0)? != 1 || u32_at(4)? != 0 {
++        return None;
++    }
++    let count = u32_at(8)? as usize;
++    let formats = u32_at(12)? as usize;
++    let modifier_count = u32_at(16)? as usize;
++    let modifiers = u32_at(20)? as usize;
++    blob.get(formats..formats.checked_add(count.checked_mul(4)?)?)?;
++    blob.get(modifiers..modifiers.checked_add(modifier_count.checked_mul(24)?)?)?;
++    let Some(index) = (0..count).find(|i| u32_at(formats + i * 4) == Some(format)) else {
++        return Some(Vec::new());
++    };
++    let mut result = Vec::new();
++    for i in 0..modifier_count {
++        let record = modifiers + i * 24;
++        let mask = u64_at(record)?;
++        let offset = u32_at(record + 8)? as usize;
++        if index >= offset && index - offset < 64 && mask & (1 << (index - offset)) != 0 {
++            result.push(u64_at(record + 16)?);
++        }
++    }
++    Some(result)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn blob() -> Vec<u8> {
++        let mut b = Vec::new();
++        for value in [1_u32, 0, 2, 24, 2, 32, 0x34325258, 0x36314752] {
++            b.extend(value.to_ne_bytes());
++        }
++        for (mask, modifier) in [(1_u64, 0x0800000000000011_u64), (2, 0)] {
++            b.extend(mask.to_ne_bytes());
++            b.extend(0_u32.to_ne_bytes());
++            b.extend(0_u32.to_ne_bytes());
++            b.extend(modifier.to_ne_bytes());
++        }
++        b
++    }
++
++    #[test]
++    fn does_not_assume_rgb_is_linear() {
++        assert_eq!(
++            modifiers_for_format(&blob(), 0x34325258),
++            Some(vec![0x0800000000000011])
++        );
++        assert_eq!(modifiers_for_format(&blob(), 0x36314752), Some(vec![0]));
++        assert_eq!(modifiers_for_format(&blob(), 0), Some(vec![]));
++    }
++
++    #[test]
++    fn rejects_truncated_or_invalid_layouts() {
++        let valid = blob();
++        for length in 0..valid.len() {
++            assert!(modifiers_for_format(&valid[..length], 0x34325258).is_none());
++        }
++        let mut invalid = valid;
++        invalid[12..16].copy_from_slice(&u32::MAX.to_ne_bytes());
++        assert!(modifiers_for_format(&invalid, 0x34325258).is_none());
++    }
++}
+--- a/drmoutput.rs
++++ b/drmoutput.rs
+@@ -256,6 +256,7 @@
+         }
+     }
+ 
++    #[cfg(feature = "renderer-software")]
+     pub fn get_supported_formats(&self) -> Result<Vec<drm::buffer::DrmFourcc>, PlatformError> {
+         // Try to set universal planes client capability if possible
+         let _ = self.drm_device.set_client_capability(drm::ClientCapability::UniversalPlanes, true);
+@@ -293,6 +294,47 @@
+     pub fn size(&self) -> (u32, u32) {
+         let (width, height) = self.mode.size();
+         (width as u32, height as u32)
++    }
++
++    #[cfg(feature = "gbm")]
++    pub fn primary_modifiers(&self, format: drm::buffer::DrmFourcc) -> Result<Vec<u64>, PlatformError> {
++        self.drm_device.set_client_capability(drm::ClientCapability::UniversalPlanes, true)
++            .map_err(|e| format!("Cannot enumerate DRM planes: {e}"))?;
++        let resources = self.drm_device.resource_handles().map_err(|e| e.to_string())?;
++        for handle in self.drm_device.plane_handles().map_err(|e| e.to_string())? {
++            let plane = self.drm_device.get_plane(handle).map_err(|e| e.to_string())?;
++            if !resources.filter_crtcs(plane.possible_crtcs()).contains(&self.crtc) {
++                continue;
++            }
++            let properties = self.drm_device.get_properties(handle).map_err(|e| e.to_string())?;
++            let mut primary = false;
++            let mut blob_id = None;
++            for (&property, &value) in properties.iter() {
++                let info = self.drm_device.get_property(property).map_err(|e| e.to_string())?;
++                match info.name().to_bytes() {
++                    b"type" => primary = value == drm::control::PlaneType::Primary as u64,
++                    b"IN_FORMATS" if value != 0 => blob_id = Some(value),
++                    _ => {}
++                }
++            }
++            if !primary || !plane.formats().contains(&(format as u32)) {
++                continue;
++            }
++            let modifiers = if let Some(id) = blob_id {
++                let blob = self.drm_device.get_property_blob(id).map_err(|e| e.to_string())?;
++                crate::drmformats::modifiers_for_format(&blob, format as u32)
++                    .ok_or_else(|| "Malformed DRM IN_FORMATS blob".to_string())?
++            } else {
++                vec![0] // Legacy KMS advertises implicit linear formats.
++            };
++            if modifiers.is_empty() {
++                return Err("Primary plane does not advertise a modifier for XRGB8888".into());
++            }
++            eprintln!("DRM_OUTPUT: {}-{}; CRTC={:?}; primary={:?}; format={format:?}; modifiers={modifiers:x?}",
++                self.connector.interface().as_str(), self.connector.interface_id(), self.crtc, handle);
++            return Ok(modifiers);
++        }
++        Err("No compatible DRM primary plane for GPU scanout".into())
+     }
+ 
+     /// Returns the refresh rate in millihertz, computed from the mode's pixel clock
+--- a/display/gbmdisplay.rs
++++ b/display/gbmdisplay.rs
+@@ -4,6 +4,7 @@
+ // cSpell: ignore SCANOUT
+ use drm::control::Device;
+ use gbm::AsRaw;
++use std::cell::Cell;
+ use i_slint_core::platform::PlatformError;
+ 
+ use crate::drmoutput::{DrmOutput, SharedFd};
+@@ -24,6 +25,7 @@
+     gbm_surface: gbm::Surface<OwnedFramebufferHandle>,
+     gbm_device: gbm::Device<SharedFd>,
+     surface_format: drm::buffer::DrmFourcc,
++    logged_frame: Cell<bool>,
+ }
+ 
+ impl GbmDisplay {
+@@ -36,16 +38,18 @@
+         let surface_format = gbm::Format::Xrgb8888;
+ 
+         let (width, height) = drm_output.size();
++        let modifiers = drm_output.primary_modifiers(surface_format)?;
+         let gbm_surface = gbm_device
+-            .create_surface::<OwnedFramebufferHandle>(
++            .create_surface_with_modifiers2::<OwnedFramebufferHandle>(
+                 width,
+                 height,
+                 surface_format,
++                modifiers.into_iter().map(gbm::Modifier::from),
+                 gbm::BufferObjectFlags::SCANOUT | gbm::BufferObjectFlags::RENDERING,
+             )
+             .map_err(|e| format!("Error creating gbm surface: {e}"))?;
+ 
+-        Ok(GbmDisplay { drm_output, gbm_surface, gbm_device, surface_format })
++        Ok(GbmDisplay { drm_output, gbm_surface, gbm_device, surface_format, logged_frame: Cell::new(false) })
+     }
+ 
+     pub fn config_template_builder(&self) -> glutin::config::ConfigTemplateBuilder {
+@@ -62,6 +66,7 @@
+     }
+ 
+     pub fn filter_gl_config(&self, config: &glutin::config::Config) -> bool {
++        #[allow(unreachable_patterns)] // GBM builds currently provide only EGL configs.
+         match &config {
+             glutin::config::Config::Egl(egl_config) => {
+                 drm::buffer::DrmFourcc::try_from(egl_config.native_visual())
+@@ -95,6 +100,12 @@
+             .drm_device
+             .add_planar_framebuffer(&front_buffer, flags)
+             .map_err(|e| format!("Error adding gbm buffer as framebuffer: {e}"))?;
++
++        if !self.logged_frame.replace(true) {
++            eprintln!("GPU_SCANOUT: framebuffer={fb:?}; modifier={:?}; pitch={}",
++                drm::buffer::PlanarBuffer::modifier(&front_buffer),
++                drm::buffer::Buffer::pitch(&front_buffer));
++        }
+ 
+         front_buffer.set_userdata(OwnedFramebufferHandle {
+             handle: fb,

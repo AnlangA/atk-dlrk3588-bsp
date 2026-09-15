@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Optional Slint output selection. Leave unset to select the connected screen.
+# The 5.5-inch 1080p panel needs larger logical pixels for readable touch targets.
+SLINT_SCALE_FACTOR=2
+# Names can be enumerated with SLINT_DRM_OUTPUT=list (service logs).
+#SLINT_DRM_OUTPUT=HDMI-A-1
+# Mode is an index in SLINT_DRM_MODE=list, not a resolution string.
+#SLINT_DRM_MODE=0
+#SLINT_KMS_ROTATION=0
