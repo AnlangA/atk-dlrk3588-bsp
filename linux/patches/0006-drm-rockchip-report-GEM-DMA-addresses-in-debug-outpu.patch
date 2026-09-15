@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Tue, 15 Sep 2026 09:50:51 +0800
+Subject: [PATCH 06/10] drm/rockchip: report GEM DMA addresses in debug output
+
+Implement the standard GEM print_info hook so framebuffer debug output
+includes the Rockchip object's DMA address. This allows the scanout and
+writeback mappings to be correlated during display bring-up without
+assuming that CPU physical addresses are display IOVAs.
+
+Verified against an allocated framebuffer on RK3588 and used its mapping
+to capture the VOP output while Slint rendered through Panthor and AFBC.
+
+Signed-off-by: Realer Mason <stone-mason@dr.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_gem.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_gem.c b/drivers/gpu/drm/rockchip/rockchip_drm_gem.c
+index b188539dca0b25e5f371c9aa312e17ae502649fd..56258a7f5d55bddbedb804d2dcdcb0383bae4783 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_gem.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_gem.c
+@@ -272,6 +272,14 @@ static void rockchip_gem_release_object(struct rockchip_gem_object *rk_obj)
+ 	kfree(rk_obj);
+ }
+ 
++static void rockchip_gem_print_info(struct drm_printer *p, unsigned int indent,
++				    const struct drm_gem_object *obj)
++{
++	const struct rockchip_gem_object *rk_obj = to_rockchip_obj(obj);
++
++	drm_printf_indent(p, indent, "dma_addr=%pad\n", &rk_obj->dma_addr);
++}
++
+ static const struct drm_gem_object_funcs rockchip_gem_object_funcs = {
+ 	.free = rockchip_gem_free_object,
+ 	.get_sg_table = rockchip_gem_prime_get_sg_table,
+@@ -279,6 +287,7 @@ static const struct drm_gem_object_funcs rockchip_gem_object_funcs = {
+ 	.vunmap	= rockchip_gem_prime_vunmap,
+ 	.mmap = rockchip_drm_gem_object_mmap,
+ 	.vm_ops = &drm_gem_dma_vm_ops,
++	.print_info = rockchip_gem_print_info,
+ };
+ 
+ static struct rockchip_gem_object *

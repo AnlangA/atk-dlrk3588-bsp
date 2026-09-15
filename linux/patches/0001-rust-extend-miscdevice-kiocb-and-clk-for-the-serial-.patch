@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Realer Mason <stone-mason@dr.com>
 Date: Sat, 12 Sep 2026 17:51:48 +0800
-Subject: [PATCH 1/4] rust: extend miscdevice, kiocb and clk for the serial
+Subject: [PATCH 01/10] rust: extend miscdevice, kiocb and clk for the serial
  abstractions
 
 Prepare the kernel crate for the out-of-tree Rust UART controller and

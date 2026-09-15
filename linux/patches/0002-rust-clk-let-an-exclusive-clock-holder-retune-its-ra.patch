@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Realer Mason <stone-mason@dr.com>
 Date: Sat, 12 Sep 2026 19:55:24 +0800
-Subject: [PATCH 2/4] rust: clk: let an exclusive clock holder retune its rate
+Subject: [PATCH 02/10] rust: clk: let an exclusive clock holder retune its
+ rate
 
 Add `ExclusiveEnabledClk::set_rate`, which gates the clock around a rate
 change while keeping the exclusive claim, and track the enable state so

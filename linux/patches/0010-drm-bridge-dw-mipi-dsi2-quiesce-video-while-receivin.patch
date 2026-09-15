@@ -1,0 +1,180 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Tue, 15 Sep 2026 20:53:34 +0800
+Subject: [PATCH 10/10] drm/bridge: dw-mipi-dsi2: quiesce video while receiving
+ commands
+
+Manual video timings do not reserve a complete BTA response interval.
+On an RK3588 with an HX8399 panel, reads during video transmission
+intermittently time out or return bit-shifted long payloads. The same
+requests in command mode return the programmed power, GIP and gamma
+register values correctly.
+
+Keep read transactions in command mode until the reply has been consumed,
+and restore video on both successful and failed transfers. Leave write
+transactions and reads already issued in command mode unchanged.
+
+Share the checked mode transition helper and allow up to 100 ms for a
+transition: leaving video can wait for a frame boundary, which already
+exceeds the previous 10 ms timeout at the tested 54 Hz refresh rate.
+
+Tested on ATK-DLRK3588 with a 1080x1920 HX8399 panel: short and 54-byte
+reads, successful video restoration, invalid-request error restoration,
+GPU scanout and input event injection. On-demand reads may skip frames;
+this is preferable to returning corrupted data from unreserved BTA slots.
+
+Signed-off-by: Realer Mason <stone-mason@dr.com>
+---
+ .../gpu/drm/bridge/synopsys/dw-mipi-dsi2.c    | 87 +++++++++++--------
+ 1 file changed, 51 insertions(+), 36 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+index f84b5382cb06c3708cc1c70980a66dce24719f4f..e236dc61cfc724ec1ec443b88cc498b7066f9ba9 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+@@ -158,7 +158,8 @@
+ #define DSI2_INT_FORCE_CRI		0x0468
+ #define DSI2_MAX_REGISGER		DSI2_INT_FORCE_CRI
+ 
+-#define MODE_STATUS_TIMEOUT_US		10000
++/* Leaving video mode may wait for a frame boundary. */
++#define MODE_STATUS_TIMEOUT_US		100000
+ #define CMD_PKT_STATUS_TIMEOUT_US	20000
+ 
+ enum vid_mode_type {
+@@ -235,11 +236,26 @@ static int cri_fifos_wait_avail(struct dw_mipi_dsi2 *dsi2)
+ 	return 0;
+ }
+ 
+-static void dw_mipi_dsi2_set_vid_mode(struct dw_mipi_dsi2 *dsi2)
++static int dw_mipi_dsi2_set_mode(struct dw_mipi_dsi2 *dsi2, u32 requested)
+ {
+-	u32 val = 0, mode;
++	u32 mode;
+ 	int ret;
+ 
++	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, requested);
++	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
++				       mode, mode == requested,
++				       1000, MODE_STATUS_TIMEOUT_US);
++	if (ret)
++		dev_err(dsi2->dev, "failed to enter mode %u (current %u)\n",
++			requested, mode);
++
++	return ret;
++}
++
++static void dw_mipi_dsi2_set_vid_mode(struct dw_mipi_dsi2 *dsi2)
++{
++	u32 val = 0;
++
+ 	if (dsi2->mode_flags & MIPI_DSI_MODE_VIDEO_NO_HFP)
+ 		val |= BLK_HFP_HS_EN;
+ 
+@@ -258,38 +274,17 @@ static void dw_mipi_dsi2_set_vid_mode(struct dw_mipi_dsi2 *dsi2)
+ 
+ 	regmap_write(dsi2->regmap, DSI2_DSI_VID_TX_CFG, val);
+ 
+-	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, VIDEO_MODE);
+-	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
+-				       mode, mode == VIDEO_MODE,
+-				       1000, MODE_STATUS_TIMEOUT_US);
+-	if (ret < 0)
+-		dev_err(dsi2->dev, "failed to enter video mode\n");
++	dw_mipi_dsi2_set_mode(dsi2, VIDEO_MODE);
+ }
+ 
+ static void dw_mipi_dsi2_set_data_stream_mode(struct dw_mipi_dsi2 *dsi2)
+ {
+-	u32 mode;
+-	int ret;
+-
+-	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, DATA_STREAM_MODE);
+-	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
+-				       mode, mode == DATA_STREAM_MODE,
+-				       1000, MODE_STATUS_TIMEOUT_US);
+-	if (ret < 0)
+-		dev_err(dsi2->dev, "failed to enter data stream mode\n");
++	dw_mipi_dsi2_set_mode(dsi2, DATA_STREAM_MODE);
+ }
+ 
+ static void dw_mipi_dsi2_set_cmd_mode(struct dw_mipi_dsi2 *dsi2)
+ {
+-	u32 mode;
+-	int ret;
+-
+-	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, COMMAND_MODE);
+-	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
+-				       mode, mode == COMMAND_MODE,
+-				       1000, MODE_STATUS_TIMEOUT_US);
+-	if (ret < 0)
+-		dev_err(dsi2->dev, "failed to enter data stream mode\n");
++	dw_mipi_dsi2_set_mode(dsi2, COMMAND_MODE);
+ }
+ 
+ static void dw_mipi_dsi2_host_softrst(struct dw_mipi_dsi2 *dsi2)
+@@ -696,7 +691,23 @@ static ssize_t dw_mipi_dsi2_host_transfer(struct mipi_dsi_host *host,
+ 	struct dw_mipi_dsi2 *dsi2 = host_to_dsi2(host);
+ 	bool lpm = msg->flags & MIPI_DSI_MSG_USE_LPM;
+ 	struct mipi_dsi_packet packet;
+-	int ret, nb_bytes;
++	u32 mode = IDLE_MODE;
++	int ret, restore_ret;
++
++	/*
++	 * The manual video timings do not reserve a complete BTA response
++	 * interval. Pixel transmission can resume during a peripheral's LP
++	 * response, corrupting its header or payload. Quiesce video for reads
++	 * and restore it on both success and failure after consuming the reply.
++	 */
++	if (msg->rx_len) {
++		regmap_read(dsi2->regmap, DSI2_MODE_STATUS, &mode);
++		if (mode == VIDEO_MODE) {
++			ret = dw_mipi_dsi2_set_mode(dsi2, COMMAND_MODE);
++			if (ret)
++				goto restore_mode;
++		}
++	}
+ 
+ 	regmap_update_bits(dsi2->regmap, DSI2_DSI_VID_TX_CFG,
+ 			   LPDT_DISPLAY_CMD_EN,
+@@ -706,27 +717,31 @@ static ssize_t dw_mipi_dsi2_host_transfer(struct mipi_dsi_host *host,
+ 	ret = mipi_dsi_create_packet(&packet, msg);
+ 	if (ret) {
+ 		dev_err(dsi2->dev, "failed to create packet: %d\n", ret);
+-		return ret;
++		goto restore_mode;
+ 	}
+ 
+ 	ret = cri_fifos_wait_avail(dsi2);
+ 	if (ret)
+-		return ret;
++		goto restore_mode;
+ 
+ 	ret = dw_mipi_dsi2_write(dsi2, &packet, lpm);
+ 	if (ret)
+-		return ret;
++		goto restore_mode;
+ 
+ 	if (msg->rx_buf && msg->rx_len) {
+ 		ret = dw_mipi_dsi2_read(dsi2, msg);
+-		if (ret < 0)
+-			return ret;
+-		nb_bytes = ret;
+ 	} else {
+-		nb_bytes = packet.size;
++		ret = packet.size;
++	}
++
++restore_mode:
++	if (mode == VIDEO_MODE) {
++		restore_ret = dw_mipi_dsi2_set_mode(dsi2, VIDEO_MODE);
++		if (ret >= 0)
++			ret = restore_ret ?: ret;
+ 	}
+ 
+-	return nb_bytes;
++	return ret;
+ }
+ 
+ static const struct mipi_dsi_host_ops dw_mipi_dsi2_host_ops = {

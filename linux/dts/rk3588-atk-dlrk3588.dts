@@ -17,6 +17,7 @@
  * is scripts/dtc/include-prefixes; an in-tree copy would use "rk3588.dtsi".
  */
 #include <arm64/rockchip/rk3588.dtsi>
+#include "rk3588-atk-dlrk3588-hdmi.dtsi"
 
 / {
 	model = "Alientek ATK-DLRK3588 Board";
@@ -118,6 +119,11 @@
 	cpu-supply = <&vdd_cpu_lit_s0>;
 };
 
+&gpu {
+	mali-supply = <&vdd_gpu_s0>;
+	status = "okay";
+};
+
 &gmac0 {
 	clock_in_out = "output";
 	/* GMAC supplies the TX delay; the PHY supplies the RX delay. */
@@ -172,6 +178,15 @@
 	};
 };
 
+/* MIPI touch buses; panel-specific child nodes are selected with the panel. */
+&i2c5 {
+	status = "okay";
+};
+
+&i2c6 {
+	status = "okay";
+};
+
 &mdio0 {
 	rgmii_phy0: ethernet-phy@1 {
 		compatible = "ethernet-phy-ieee802.3-c22";
@@ -208,12 +223,21 @@
 	};
 };
 
+&pd_gpu {
+	domain-supply = <&vdd_gpu_s0>;
+};
+
 &pinctrl {
 	sdmmc {
 		sd_s0_pwr: sd-s0-pwr {
 			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
+};
+
+&saradc {
+	vref-supply = <&avcc_1v8_s0>;
+	status = "okay";
 };
 
 &sdhci {
@@ -561,6 +585,10 @@
 			};
 		};
 	};
+};
+
+&tsadc {
+	status = "okay";
 };
 
 &uart2 {

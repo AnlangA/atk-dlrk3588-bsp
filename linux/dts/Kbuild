@@ -3,3 +3,4 @@
 # with the kernel's own dtc and preprocessor when this directory is passed as
 # an external module directory (make -C <kernel> O=<build> M=$(pwd) MO=<out>).
 dtb-y += rk3588-atk-dlrk3588.dtb
+dtb-y += rk3588-atk-dlrk3588-mipi-1080p.dtb

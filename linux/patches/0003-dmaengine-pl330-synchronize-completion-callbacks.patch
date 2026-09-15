@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Realer Mason <stone-mason@dr.com>
 Date: Sat, 12 Sep 2026 22:02:48 +0800
-Subject: [PATCH 3/4] dmaengine: pl330: synchronize completion callbacks
+Subject: [PATCH 03/10] dmaengine: pl330: synchronize completion callbacks
 
 Implement device_synchronize by waiting for the channel tasklet after
 termination. Stopping the hardware and retiring descriptors does not

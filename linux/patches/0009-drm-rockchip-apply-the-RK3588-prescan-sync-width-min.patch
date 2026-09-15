@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Tue, 15 Sep 2026 10:02:22 +0800
+Subject: [PATCH 09/10] drm/rockchip: apply the RK3588 prescan sync width
+ minimum
+
+The RK3588 vendor driver clamps the prescan horizontal sync interval to
+eight pixels. The shared RK3568 setup currently writes the mode's sync
+width directly, so a six-pixel sync on the ATK 1080p panel programs a
+prescan interval below the vendor minimum.
+
+Apply the clamp for RK3588 without changing the transmitted mode timing
+or the behaviour of other VOP2 variants. Verified the VP3 prescan register
+changes from 0x024f0006 to the vendor value 0x024f0008 on this board while
+GPU rendering and VOP writeback continue to produce the interface image.
+
+Signed-off-by: Realer Mason <stone-mason@dr.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_vop2_reg.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+index 17eda592b1833aff84927d93a093b4d26c5cfb18..a7215ff8939a5ed9ee806167e23a7b2605b25696 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
++++ b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+@@ -2457,6 +2457,10 @@ static void rk3568_vop2_setup_bg_dly(struct vop2_video_port *vp)
+ 	u32 bg_dly;
+ 	u32 pre_scan_dly;
+ 
++	/* RK3588 needs at least eight pixels in the prescan sync interval. */
++	if (vp->vop2->version == VOP_VERSION_RK3588)
++		hsync_len = max_t(u16, hsync_len, 8);
++
+ 	bg_dly = vp->data->pre_scan_max_dly[3];
+ 	vop2_writel(vp->vop2, RK3568_VP_BG_MIX_CTRL(vp->id),
+ 		    FIELD_PREP(RK3568_VP_BG_MIX_CTRL__BG_DLY, bg_dly));

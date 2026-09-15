@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Tue, 15 Sep 2026 09:50:51 +0800
+Subject: [PATCH 07/10] drm/bridge: dw-mipi-dsi2: wait for the requested
+ operating mode
+
+The operating modes are enum values, not independent bits. Testing
+mode & VIDEO_MODE can accept COMMAND_MODE because 2 & 3 is nonzero.
+Likewise the command-mode wait can accept video mode.
+
+Compare the status with the requested mode so that subsequent bridge
+and panel operations cannot run on a false successful transition.
+Verified command/video transitions on RK3588 with an HX8399 panel.
+
+Signed-off-by: Realer Mason <stone-mason@dr.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+index 7f8078c2fd2a8714733a7560509ee18a81baf09b..91d216ccdceb62f0de6ba4b0265d062862e1d6ea 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+@@ -259,7 +259,7 @@ static void dw_mipi_dsi2_set_vid_mode(struct dw_mipi_dsi2 *dsi2)
+ 
+ 	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, VIDEO_MODE);
+ 	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
+-				       mode, mode & VIDEO_MODE,
++				       mode, mode == VIDEO_MODE,
+ 				       1000, MODE_STATUS_TIMEOUT_US);
+ 	if (ret < 0)
+ 		dev_err(dsi2->dev, "failed to enter video mode\n");
+@@ -272,7 +272,7 @@ static void dw_mipi_dsi2_set_data_stream_mode(struct dw_mipi_dsi2 *dsi2)
+ 
+ 	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, DATA_STREAM_MODE);
+ 	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
+-				       mode, mode & DATA_STREAM_MODE,
++				       mode, mode == DATA_STREAM_MODE,
+ 				       1000, MODE_STATUS_TIMEOUT_US);
+ 	if (ret < 0)
+ 		dev_err(dsi2->dev, "failed to enter data stream mode\n");
+@@ -285,7 +285,7 @@ static void dw_mipi_dsi2_set_cmd_mode(struct dw_mipi_dsi2 *dsi2)
+ 
+ 	regmap_write(dsi2->regmap, DSI2_MODE_CTRL, COMMAND_MODE);
+ 	ret = regmap_read_poll_timeout(dsi2->regmap, DSI2_MODE_STATUS,
+-				       mode, mode & COMMAND_MODE,
++				       mode, mode == COMMAND_MODE,
+ 				       1000, MODE_STATUS_TIMEOUT_US);
+ 	if (ret < 0)
+ 		dev_err(dsi2->dev, "failed to enter data stream mode\n");

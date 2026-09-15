@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/display/panel/alientek,atk-md0550-1080p.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Alientek ATK-MD0550 1080p MIPI display module
+
+maintainers:
+  - Realer Mason <stone-mason@dr.com>
+
+description: |
+  Alientek 5.5 inch 1080x1920 four-lane MIPI DSI module using a Himax
+  HX8399 controller, as supplied with the ATK-DLRK3588 development board.
+  Power is the module's 5 V input; regulators internal to the module are
+  not software controlled. The separate Goodix touchscreen is an I2C device.
+
+allOf:
+  - $ref: /schemas/display/panel/panel-common.yaml#
+
+properties:
+  compatible:
+    const: alientek,atk-md0550-1080p
+  reg:
+    maxItems: 1
+  power-supply: true
+  reset-gpios:
+    maxItems: 1
+  backlight: true
+  port: true
+
+required:
+  - compatible
+  - reg
+  - power-supply
+  - reset-gpios
+  - backlight
+  - port
+
+unevaluatedProperties: false

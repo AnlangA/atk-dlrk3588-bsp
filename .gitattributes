@@ -1,0 +1,3 @@
+# Unified diffs require context prefixes, including whitespace-only lines.
+# Validate the changes inside kernel patches with checkpatch instead.
+*.patch -whitespace

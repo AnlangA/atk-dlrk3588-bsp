@@ -1,0 +1,94 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+#include "rk3588-atk-dlrk3588.dts"
+
+/ {
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm1 0 25000 0>;
+		brightness-levels = <0 16 32 64 96 128 160 192 224 255>;
+		default-brightness-level = <7>;
+		power-supply = <&vcc5v0_sys>;
+	};
+};
+
+&dsi0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	/* Use a CRU-managed PLL instead of inheriting the firmware's SPLL. */
+	assigned-clocks = <&cru CLK_DSIHOST0>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
+	assigned-clock-rates = <375000000>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "alientek,atk-md0550-1080p";
+		reg = <0>;
+		backlight = <&backlight>;
+		power-supply = <&vcc5v0_sys>;
+		reset-gpios = <&gpio4 RK_PA3 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&mipi0_reset>;
+
+		port {
+			panel_in_dsi0: endpoint {
+				remote-endpoint = <&dsi0_out_panel>;
+			};
+		};
+	};
+};
+
+&dsi0_in {
+	dsi0_in_vp3: endpoint {
+		remote-endpoint = <&vp3_out_dsi0>;
+	};
+};
+
+&dsi0_out {
+	dsi0_out_panel: endpoint {
+		remote-endpoint = <&panel_in_dsi0>;
+	};
+};
+
+&i2c5 {
+	touchscreen@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PC0 IRQ_TYPE_EDGE_FALLING>;
+		irq-gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_HIGH>;
+		/* Goodix's reset protocol uses physical levels (0 then 1). */
+		reset-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&mipi0_touch>;
+		touchscreen-size-x = <1080>;
+		touchscreen-size-y = <1920>;
+	};
+};
+
+&mipidcphy0 {
+	status = "okay";
+};
+
+&pinctrl {
+	lcd {
+		mipi0_reset: mipi0-reset {
+			rockchip,pins = <4 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		mipi0_touch: mipi0-touch {
+			rockchip,pins = <3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>,
+				       <3 RK_PC0 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};
+
+&pwm1 {
+	status = "okay";
+};
+
+&vp3 {
+	vp3_out_dsi0: endpoint@ROCKCHIP_VOP2_EP_MIPI0 {
+		reg = <ROCKCHIP_VOP2_EP_MIPI0>;
+		remote-endpoint = <&dsi0_in_vp3>;
+	};
+};

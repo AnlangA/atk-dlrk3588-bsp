@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Realer Mason <stone-mason@dr.com>
+Date: Tue, 15 Sep 2026 00:57:56 +0800
+Subject: [PATCH 05/10] drm/bridge: dw-mipi-dsi2: validate and drain read
+ responses
+
+Decode the response type before copying payload bytes and return the
+number actually received. Otherwise ACK/error packets are exposed as
+data and a response shorter than rx_len is reported as a complete read.
+Drain long responses past the caller buffer so a larger peripheral
+return packet cannot leave stale bytes in the RX FIFO.
+
+Validated on RK3588 with an HX8399 panel: a four-byte request limited to
+a one-byte response returns one, and consecutive reads with an eight-byte
+maximum return size work with one- and four-byte receive buffers.
+
+Signed-off-by: Realer Mason <stone-mason@dr.com>
+---
+ .../gpu/drm/bridge/synopsys/dw-mipi-dsi2.c    | 41 +++++++++++++++----
+ 1 file changed, 33 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+index b2a022d266d901a79aa204f5bb240211d3e8a367..7f8078c2fd2a8714733a7560509ee18a81baf09b 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi2.c
+@@ -617,7 +617,9 @@ static int dw_mipi_dsi2_read(struct dw_mipi_dsi2 *dsi2,
+ 			     const struct mipi_dsi_msg *msg)
+ {
+ 	u8 *payload = msg->rx_buf;
+-	int i, j, ret, len = msg->rx_len;
++	size_t len = msg->rx_len;
++	unsigned int i, j;
++	int ret;
+ 	u8 data_type;
+ 	u16 wc;
+ 	u32 val;
+@@ -632,23 +634,46 @@ static int dw_mipi_dsi2_read(struct dw_mipi_dsi2 *dsi2,
+ 
+ 	regmap_read(dsi2->regmap, DSI2_CRI_RX_HDR, &val);
+ 	data_type = val & 0x3f;
++	dev_dbg(dsi2->dev, "DSI_RX header=%#010x type=%#x requested=%zu\n",
++		val, data_type, msg->rx_len);
++
++	switch (data_type) {
++	case MIPI_DSI_RX_ACKNOWLEDGE_AND_ERROR_REPORT:
++		dev_err(dsi2->dev, "DSI peripheral error report: %#x\n",
++			(val >> 8) & 0xffff);
++		return -EIO;
++	case MIPI_DSI_RX_GENERIC_SHORT_READ_RESPONSE_1BYTE:
++	case MIPI_DSI_RX_DCS_SHORT_READ_RESPONSE_1BYTE:
++		wc = 1;
++		break;
++	case MIPI_DSI_RX_GENERIC_SHORT_READ_RESPONSE_2BYTE:
++	case MIPI_DSI_RX_DCS_SHORT_READ_RESPONSE_2BYTE:
++		wc = 2;
++		break;
++	case MIPI_DSI_RX_GENERIC_LONG_READ_RESPONSE:
++	case MIPI_DSI_RX_DCS_LONG_READ_RESPONSE:
++		wc = (val >> 8) & 0xffff;
++		break;
++	default:
++		dev_err(dsi2->dev, "Unexpected DSI read response: %#x\n", data_type);
++		return -EPROTO;
++	}
+ 
+ 	if (mipi_dsi_packet_format_is_short(data_type)) {
+-		for (i = 0; i < len && i < 2; i++)
++		for (i = 0; i < len && i < wc; i++)
+ 			payload[i] = (val >> (8 * (i + 1))) & 0xff;
+ 
+-		return 0;
++		return min_t(size_t, len, wc);
+ 	}
+ 
+-	wc = (val >> 8) & 0xffff;
+-	/* Receive payload */
+-	for (i = 0; i < len && i < wc; i += 4) {
++	/* Drain the response, including bytes beyond the caller's buffer. */
++	for (i = 0; i < wc; i += 4) {
+ 		regmap_read(dsi2->regmap, DSI2_CRI_RX_PLD, &val);
+ 		for (j = 0; j < 4 && j + i < len && j + i < wc; j++)
+ 			payload[i + j] = val >> (8 * j);
+ 	}
+ 
+-	return 0;
++	return min_t(size_t, len, wc);
+ }
+ 
+ static ssize_t dw_mipi_dsi2_host_transfer(struct mipi_dsi_host *host,
+@@ -682,7 +707,7 @@ static ssize_t dw_mipi_dsi2_host_transfer(struct mipi_dsi_host *host,
+ 		ret = dw_mipi_dsi2_read(dsi2, msg);
+ 		if (ret < 0)
+ 			return ret;
+-		nb_bytes = msg->rx_len;
++		nb_bytes = ret;
+ 	} else {
+ 		nb_bytes = packet.size;
+ 	}

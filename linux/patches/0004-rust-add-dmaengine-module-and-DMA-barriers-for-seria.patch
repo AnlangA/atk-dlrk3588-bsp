@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Realer Mason <stone-mason@dr.com>
 Date: Sat, 12 Sep 2026 22:03:43 +0800
-Subject: [PATCH 4/4] rust: add dmaengine module and DMA barriers for serial
+Subject: [PATCH 04/10] rust: add dmaengine module and DMA barriers for serial
  DMA
 
 Register the `dmaengine` module (compiled when DMA_ENGINE is built in),
